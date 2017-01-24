@@ -431,7 +431,7 @@ public class AttysComm extends Thread {
     // from here it's private
     private BluetoothSocket mmSocket = null;
     private Scanner inScanner = null;
-    private boolean doRun = false;
+    private boolean doRun = true;
     private float[][] ringBuffer = null;
     final private int nMem = 1000;
     private int inPtr = 0;
@@ -498,6 +498,9 @@ public class AttysComm extends Thread {
                 if (mmSocket != null) {
                     yield();
                     mmSocket.connect();
+                    if (!doRun) return;
+                    connectionEstablished = true;
+                    return;
                 }
             } catch (IOException connectException) {
 
@@ -518,10 +521,14 @@ public class AttysComm extends Thread {
                 } catch (Exception ee) {};
 
                 try {
-                    mmSocket = bluetoothDevice.createInsecureRfcommSocketToServiceRecord(uuid);
+                    mmSocket = null;
+                    Method createMethod = bluetoothDevice.getClass().
+                            getMethod("createInsecureRfcommSocket", int.class);
+                    mmSocket = (BluetoothSocket) createMethod.invoke(bluetoothDevice, 1);
+                    if (!doRun) return;
                 } catch (Exception ex) {
                     if (Log.isLoggable(TAG, Log.DEBUG)) {
-                        Log.d(TAG, "Could not get rfComm socket:", ex);
+                        Log.d(TAG, "Could not get rfComm socket (w/o UUID):", ex);
                     }
                     try {
                         if (mmSocket != null) {
@@ -538,6 +545,9 @@ public class AttysComm extends Thread {
                     if (mmSocket != null) {
                         yield();
                         mmSocket.connect();
+                        if (!doRun) return;
+                        connectionEstablished = true;
+                        return;
                     }
                 } catch (IOException e2) {
 
@@ -545,22 +555,20 @@ public class AttysComm extends Thread {
                         sleep(100);
                     } catch (Exception ee) {};
 
-                    int numFinalAttempts = 2;
+                    int numFinalAttempts = 3;
                     for(int i=0;i<numFinalAttempts;i++) {
                         try {
                             if (Log.isLoggable(TAG, Log.DEBUG)) {
-                                Log.d(TAG, String.format("The hidden API attempt #%d",i));
+                                Log.d(TAG, String.format("Further attempt #%d for insec conn",i));
                             }
                             if (mmSocket != null) {
                                 mmSocket.close();
                             }
-                            mmSocket = null;
-                            Method createMethod = bluetoothDevice.getClass().
-                                    getMethod("createInsecureRfcommSocket", int.class);
-                            mmSocket = (BluetoothSocket) createMethod.invoke(bluetoothDevice, 1);
+                            mmSocket = bluetoothDevice.createInsecureRfcommSocketToServiceRecord(uuid);
+                            if (!doRun) return;
                         } catch (Exception e) {
                             if (Log.isLoggable(TAG, Log.ERROR)) {
-                                Log.e(TAG, "Could not get non-UUID based bluetooth socket!", e);
+                                Log.e(TAG, "Could not get bluetooth socket!", e);
                             }
                             mmSocket = null;
                             throw new IOException(e);
@@ -574,7 +582,11 @@ public class AttysComm extends Thread {
 
                         try {
                             if (mmSocket != null) {
+                                if (!doRun) return;
                                 mmSocket.connect();
+                                if (!doRun) return;
+                                connectionEstablished = true;
+                                return;
                             } else {
                                 if (i == (numFinalAttempts-1)) {
                                     throw new IOException(new IOException("mmSocket == NULL"));
@@ -603,6 +615,7 @@ public class AttysComm extends Thread {
                     }
                 }
             }
+            if (!doRun) return;
             connectionEstablished = true;
             if (Log.isLoggable(TAG, Log.VERBOSE)) {
                 Log.v(TAG, "Connected to socket!");
@@ -847,9 +860,6 @@ public class AttysComm extends Thread {
             return;
         }
 
-        // we only enter in the main loop if we have connected
-        doRun = isConnected;
-
         if (messageListener != null) {
             messageListener.haveMessage(MESSAGE_CONFIGURE);
         }
@@ -865,6 +875,8 @@ public class AttysComm extends Thread {
             }
             return;
         }
+
+        if (!doRun) return;
 
         if (Log.isLoggable(TAG, Log.DEBUG)) {
             Log.d(TAG, "Starting main data acquistion loop");
