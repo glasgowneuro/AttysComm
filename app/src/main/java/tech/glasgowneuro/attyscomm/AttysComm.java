@@ -21,8 +21,6 @@ package tech.glasgowneuro.attyscomm;
 
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
-import android.content.Intent;
-import android.net.Uri;
 import android.util.Base64;
 import android.util.Log;
 
@@ -860,9 +858,13 @@ public class AttysComm extends Thread {
             return;
         }
 
+        if (!doRun) return;
+
         if (messageListener != null) {
             messageListener.haveMessage(MESSAGE_CONFIGURE);
         }
+
+        if (!doRun) return;
 
         try {
             sendInit();
