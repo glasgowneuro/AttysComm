@@ -83,11 +83,10 @@ public class AttysComm extends Thread {
     public final static byte ADC_RATE_125HZ = 0;
     public final static byte ADC_RATE_250HZ = 1;
     public final static byte ADC_RATE_500Hz = 2;
-    public final static byte ADC_RATE_1000Hz = 3;
     public final static byte ADC_DEFAULT_RATE = ADC_RATE_250HZ;
     // array of the sampling rates converting the index
     // to the actual sampling rate
-    public final static int[] ADC_SAMPLINGRATE = {125, 250, 500, 1000};
+    public final static int[] ADC_SAMPLINGRATE = {125, 250, 500};
     // the actual sampling rate in terms of the sampling rate index
     private byte adc_rate_index = ADC_DEFAULT_RATE;
 
@@ -930,10 +929,12 @@ public class AttysComm extends Thread {
                                 data[INDEX_Analogue_channel_1 + i] = v;
                             }
 
-                            for (int i = 0; i < 6; i++) {
-                                long v = (raw[8 + i * 2] & 0xff)
-                                        | ((raw[8 + i * 2 + 1] & 0xff) << 8);
-                                data[i] = v;
+                            if (fullOrPartialData == FULL_DATA) {
+                                for (int i = 0; i < 6; i++) {
+                                    long v = (raw[8 + i * 2] & 0xff)
+                                            | ((raw[8 + i * 2 + 1] & 0xff) << 8);
+                                    data[i] = v;
+                                }
                             }
 
                             /**
@@ -967,7 +968,7 @@ public class AttysComm extends Thread {
                             // this is triggered if the base64 is too short or any data is too short
                             // this leads to data processed from the previous sample instead
                             if (Log.isLoggable(TAG, Log.DEBUG)) {
-                                Log.d(TAG, "reception error: " + oneLine);
+                                Log.d(TAG, "reception error: " + oneLine,e);
                             }
                             expectedTimestamp++;
                         }
