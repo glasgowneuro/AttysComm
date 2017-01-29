@@ -83,6 +83,7 @@ public class AttysComm extends Thread {
     public final static byte ADC_RATE_125HZ = 0;
     public final static byte ADC_RATE_250HZ = 1;
     public final static byte ADC_RATE_500Hz = 2;
+    public final static byte ADC_RATE_1000Hz = 3;
     public final static byte ADC_DEFAULT_RATE = ADC_RATE_250HZ;
     // array of the sampling rates converting the index
     // to the actual sampling rate
@@ -103,6 +104,18 @@ public class AttysComm extends Thread {
         return adc_rate_index;
     }
 
+    ///////////////////////////////////////////////////////////////////////
+    // Full data set or just ADC channels?
+    // This reflects the "f=" parameter
+    public final static byte PARTIAL_DATA = 0;
+    public final static byte FULL_DATA = 1;
+    // set if full or partial data should be transmitted
+    public void setFullOrPartialData(int _fullOrPartialData) {
+        fullOrPartialData = _fullOrPartialData;
+    }
+    public int getFullOrPartialData() {
+        return fullOrPartialData;
+    }
 
     ////////////////////////////////////////////////////////////////////////////
     // ADC gain
@@ -441,6 +454,7 @@ public class AttysComm extends Thread {
     private boolean fatalError = false;
     private byte[] adcMuxRegister = null;
     private byte[] adcGainRegister = null;
+    private int fullOrPartialData = 1;
     private boolean[] adcCurrNegOn = null;
     private boolean[] adcCurrPosOn = null;
     private byte expectedTimestamp = 0;
@@ -757,6 +771,10 @@ public class AttysComm extends Thread {
         sendSyncCommand("t=" + accel_full_scale_index);
     }
 
+    private synchronized void sendFullOrPartialData() throws IOException {
+        sendSyncCommand("f=" + fullOrPartialData);
+    }
+
     private synchronized void sendCurrentMask() throws IOException {
         sendSyncCommand("c=" + current_mask);
     }
@@ -792,6 +810,7 @@ public class AttysComm extends Thread {
         // switching to base64 encoding
         sendSyncCommand("d=1");
         sendSamplingRate();
+        sendFullOrPartialData();
         sendFullscaleAccelRange();
         sendGainMux(0, adc0_gain_index, adc0_mux_index);
         sendGainMux(1, adc1_gain_index, adc1_mux_index);

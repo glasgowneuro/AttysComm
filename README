@@ -1,0 +1,71 @@
+AttysCOMM
+---------
+
+This is the API for the Attys
+
+
+Useage
+------
+
+
+1) Create AttysComm
+
+attysComm = new AttysComm(btAttysDevice);
+
+where btAttysDevice is a bluetooth device which starts with "ATTYS*"
+
+
+
+2) Set options:
+
+In general there are constants defined for the differnet options,
+for example: AttysComm.ADC_RATE_250HZ for the sampling rate:
+
+attysComm.setAdc_samplingrate_index(AttysComm.ADC_RATE_250HZ);
+
+
+
+3) (Optional) Register a message listener for error messages:
+
+attysComm.registerMessageListener(messageListener);
+
+
+
+4) Start the data acquisition
+
+attysComm.start();
+
+
+
+5) Read the data from the ringbuffer in a TimerTask:
+
+    class UpdatePlotTask extends TimerTask {
+
+        public synchronized void run() {
+
+            if (attysComm != null) {
+                if (attysComm.hasFatalError()) {
+                    handler.sendEmptyMessage(AttysComm.MESSAGE_ERROR);
+                    return;
+                }
+            }
+            if (attysComm != null) {
+                if (!attysComm.hasActiveConnection()) return;
+            }
+
+            if (attysComm != null) {
+
+  	        n = attysComm.getNumSamplesAvilable();
+		for(int i = 0;i<n;i++) {
+                    sample = attysComm.getSampleFromBuffer();
+		    PROCESS / PLOT / ETC SAMPLE
+		}
+	    }
+        }
+    }
+
+6) (Optional) three is also an event listener whenever a sample has arrived
+
+Generally check out the public section of the class AttysComm for more info.
+
+Enjoy!
