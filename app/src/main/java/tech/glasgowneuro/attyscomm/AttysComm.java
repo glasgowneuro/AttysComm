@@ -507,7 +507,6 @@ public class AttysComm extends Thread {
         if (mmSocket != null) {
             try {
                 if (mmSocket != null) {
-                    yield();
                     mmSocket.connect();
                     if (!doRun) return;
                     connectionEstablished = true;
@@ -526,10 +525,6 @@ public class AttysComm extends Thread {
                     }
                 } catch (IOException e1) {
                 }
-
-                try {
-                    sleep(100);
-                } catch (Exception ee) {};
 
                 try {
                     mmSocket = null;
@@ -562,11 +557,12 @@ public class AttysComm extends Thread {
                     }
                 } catch (IOException e2) {
 
+                    yield();
                     try {
-                        sleep(100);
+                        sleep(500);
                     } catch (Exception ee) {};
 
-                    int numFinalAttempts = 3;
+                    int numFinalAttempts = 5;
                     for(int i=0;i<numFinalAttempts;i++) {
                         try {
                             if (Log.isLoggable(TAG, Log.DEBUG)) {
@@ -947,7 +943,8 @@ public class AttysComm extends Thread {
                             // check that the timestamp is the expected one
                             byte ts = 0;
                             nTrans = 1;
-                            if (raw.length > 8) {
+                            if (raw.length > 7) {
+                                // Log.d(TAG,"tbcorr");
                                 ts = raw[7];
                                 if ((ts - expectedTimestamp) > 0) {
                                     if (correctTimestampDifference) {
