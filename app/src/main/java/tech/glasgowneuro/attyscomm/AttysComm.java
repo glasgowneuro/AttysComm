@@ -560,7 +560,7 @@ public class AttysComm extends Thread {
                     yield();
                     try {
                         sleep(500);
-                    } catch (Exception ee) {};
+                    } catch (Exception ee) {}
 
                     int numFinalAttempts = 5;
                     for(int i=0;i<numFinalAttempts;i++) {
@@ -584,7 +584,7 @@ public class AttysComm extends Thread {
                         yield();
                         try {
                             sleep(100);
-                        } catch (Exception ee) {};
+                        } catch (Exception ee) {}
 
 
                         try {
