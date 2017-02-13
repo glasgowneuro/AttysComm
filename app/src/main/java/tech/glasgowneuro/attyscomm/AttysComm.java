@@ -243,22 +243,6 @@ public class AttysComm extends Thread {
     }
 
 
-    /////////////////////////////////////////////////////
-    // data separator when saving it to the SD card
-    public final static byte DATA_SEPARATOR_TAB = 0;
-    public final static byte DATA_SEPARATOR_COMMA = 1;
-    public final static byte DATA_SEPARATOR_SPACE = 2;
-    private byte data_separator = DATA_SEPARATOR_TAB;
-
-    public void setDataSeparator(byte s) {
-        data_separator = s;
-    }
-
-    public byte getDataSeparator() {
-        return data_separator;
-    }
-
-
     ////////////////////////////////////////////////
     // timestamp stuff as double
     // note this might drift in the long run
@@ -375,42 +359,6 @@ public class AttysComm extends Thread {
             }
         }
         return n;
-    }
-
-
-    /////////////////////////////////////////////////////////////
-    // saving data into a file
-    // starts the recording
-    public java.io.FileNotFoundException startRec(File file) {
-        try {
-            textdataFileStream = new PrintWriter(file);
-            textdataFile = file;
-            messageListener.haveMessage(MESSAGE_STARTED_RECORDING);
-        } catch (java.io.FileNotFoundException e) {
-            textdataFileStream = null;
-            textdataFile = null;
-            return e;
-        }
-        return null;
-    }
-
-    // stops it
-    public void stopRec() {
-        if (textdataFileStream != null) {
-            textdataFileStream.close();
-            messageListener.haveMessage(MESSAGE_STOPPED_RECORDING);
-            textdataFileStream = null;
-            textdataFile = null;
-        }
-    }
-
-    // are we recording?
-    public boolean isRecording() {
-        return (textdataFileStream != null);
-    }
-
-    public File getFile() {
-        return textdataFile;
     }
 
 
@@ -814,31 +762,6 @@ public class AttysComm extends Thread {
         startADC();
     }
 
-    private void saveData(float[] data) {
-        char s = ' ';
-        switch (data_separator) {
-            case DATA_SEPARATOR_SPACE:
-                s = ' ';
-                break;
-            case DATA_SEPARATOR_COMMA:
-                s = ',';
-                break;
-            case DATA_SEPARATOR_TAB:
-                s = 9;
-                break;
-        }
-        String tmp = String.format("%f%c", timestamp, s);
-        for (int i = 0; i < (data.length - 1); i++) {
-            tmp = tmp + String.format("%f%c", data[i], s);
-        }
-        tmp = tmp + String.format("%f", data[data.length - 1]);
-
-        if (textdataFileStream != null) {
-            textdataFileStream.format("%s\n", tmp);
-        }
-    }
-
-
     public void run() {
 
         long[] data = new long[NCHANNELS];
@@ -1015,10 +938,6 @@ public class AttysComm extends Thread {
 
                         // in case a sample has been lost
                         for (int j = 0; j < nTrans; j++) {
-                            if (textdataFileStream != null) {
-                                saveData(sample);
-                            }
-
                             if (dataListener != null) {
                                 dataListener.gotData(sampleNumber, sample);
                             }
