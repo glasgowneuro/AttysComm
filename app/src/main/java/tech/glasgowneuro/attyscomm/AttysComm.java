@@ -66,6 +66,18 @@ public class AttysComm extends Thread {
             "Analogue channel 2"
     };
 
+    // descriptions the channels in text form
+    public final static String[] CHANNEL_DESCRIPTION_SHORT = {
+            "Acc X",
+            "Acc Y",
+            "Acc Z",
+            "Mag X",
+            "Mag Y",
+            "Mag Z",
+            "ADC 1",
+            "ADC 2"
+    };
+
     // units of the channels
     public final static String[] CHANNEL_UNITS = {
             "m/s^2",
@@ -765,7 +777,7 @@ public class AttysComm extends Thread {
     public void run() {
 
         long[] data = new long[NCHANNELS];
-        byte[] raw = null;
+        byte[] raw;
         float[] sample = new float[NCHANNELS];
 
         int nTrans = 1;
