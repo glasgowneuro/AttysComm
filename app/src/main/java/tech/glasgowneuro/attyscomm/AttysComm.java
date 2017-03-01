@@ -40,7 +40,7 @@ import java.util.UUID;
  * it provides interfaces for both data and error
  * listeners.
  */
-public class AttysComm extends Thread {
+public class AttysComm {
 
     public final static int NCHANNELS = 8;
 
@@ -120,10 +120,12 @@ public class AttysComm extends Thread {
     // This reflects the "f=" parameter
     public final static byte PARTIAL_DATA = 0;
     public final static byte FULL_DATA = 1;
+
     // set if full or partial data should be transmitted
     public void setFullOrPartialData(int _fullOrPartialData) {
         fullOrPartialData = _fullOrPartialData;
     }
+
     public int getFullOrPartialData() {
         return fullOrPartialData;
     }
@@ -378,30 +380,36 @@ public class AttysComm extends Thread {
     // Constructor: takes the bluetooth device as an argument
     // it then tries to connect to the Attys
     public AttysComm(BluetoothDevice _device) {
+        attysRunnable = new AttysRunnable(_device);
+        attysThread = new Thread(attysRunnable);
+    }
 
-        bluetoothDevice = _device;
 
-        adcMuxRegister = new byte[2];
-        adcMuxRegister[0] = 0;
-        adcMuxRegister[1] = 0;
-        adcGainRegister = new byte[2];
-        adcGainRegister[0] = 0;
-        adcGainRegister[1] = 0;
-        adcCurrNegOn = new boolean[2];
-        adcCurrNegOn[0] = false;
-        adcCurrNegOn[1] = false;
-        adcCurrPosOn = new boolean[2];
-        adcCurrPosOn[0] = false;
-        adcCurrNegOn[1] = false;
+    public void start() {
+        attysThread.start();
+    }
 
+
+    public void stop() {
+        attysRunnable.cancel();
+        try {
+            attysThread.join();
+        } catch (Exception e) {}
+        attysThread = null;
+        attysRunnable = null;
     }
 
 
     ///////////////////////////////////////////////////////
     // from here it's private
+    private static final String TAG = "AttysComm";
+    private AttysRunnable attysRunnable = null;
+    private Thread attysThread = null;
+    private byte expectedTimestamp = 0;
+    private boolean correctTimestampDifference = false;
     private BluetoothSocket mmSocket = null;
     private Scanner inScanner = null;
-    private boolean doRun = true;
+    private boolean fatalError = false;
     private float[][] ringBuffer = null;
     final private int nMem = 1000;
     private int inPtr = 0;
@@ -409,572 +417,479 @@ public class AttysComm extends Thread {
     private boolean isConnected = false;
     private InputStream mmInStream = null;
     private OutputStream mmOutStream = null;
-    private static final String TAG = "AttysComm";
-    private boolean fatalError = false;
+    private double timestamp = 0.0; // in secs
+    private BluetoothDevice bluetoothDevice;
     private byte[] adcMuxRegister = null;
     private byte[] adcGainRegister = null;
     private int fullOrPartialData = 1;
-    private boolean[] adcCurrNegOn = null;
-    private boolean[] adcCurrPosOn = null;
-    private byte expectedTimestamp = 0;
-    private boolean correctTimestampDifference = false;
-    private PrintWriter textdataFileStream = null;
-    private File textdataFile = null;
-    private double timestamp = 0.0; // in secs
-    private boolean connectionEstablished;
-    private BluetoothDevice bluetoothDevice;
 
     // standard SPP uid
     UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
 
-    public void connectToAttys() throws IOException {
 
-        connectionEstablished = false;
-        mmSocket = null;
+    class AttysRunnable implements Runnable {
 
-        if (bluetoothDevice == null) {
-            if (Log.isLoggable(TAG, Log.ERROR)) {
-                Log.e(TAG, "Bluetooth device is null.");
-            }
-            throw new IOException();
-        }
+        boolean doRun = true;
 
-        if (bluetoothDevice == null) throw new IOException();
-        // Get a BluetoothSocket to connect with the given BluetoothDevice
+        public void connectToAttys() throws IOException {
 
-        if (messageListener != null) {
-            messageListener.haveMessage(MESSAGE_CONNECTING);
-        }
-
-        try {
-            mmSocket = bluetoothDevice.createRfcommSocketToServiceRecord(uuid);
-        } catch (Exception ex) {
-            if (Log.isLoggable(TAG, Log.DEBUG)) {
-                Log.d(TAG, "Could not get rfComm socket:", ex);
-            }
-            try {
-                mmSocket.close();
-            } catch (Exception closeExeption) {
-            }
+            boolean connectionEstablished = false;
             mmSocket = null;
-            throw new IOException(ex);
-        }
 
-        if (Log.isLoggable(TAG, Log.VERBOSE)) {
-            Log.v(TAG, "Got rfComm socket!");
-        }
+            if (bluetoothDevice == null) {
+                if (Log.isLoggable(TAG, Log.ERROR)) {
+                    Log.e(TAG, "Bluetooth device is null.");
+                }
+                throw new IOException();
+            }
 
-        if (mmSocket != null) {
+            if (bluetoothDevice == null) throw new IOException();
+            // Get a BluetoothSocket to connect with the given BluetoothDevice
+
+            if (messageListener != null) {
+                messageListener.haveMessage(MESSAGE_CONNECTING);
+            }
+
             try {
+                mmSocket = bluetoothDevice.createRfcommSocketToServiceRecord(uuid);
+            } catch (Exception ex) {
+                if (Log.isLoggable(TAG, Log.DEBUG)) {
+                    Log.d(TAG, "Could not get rfComm socket:", ex);
+                }
+                try {
+                    mmSocket.close();
+                } catch (Exception closeExeption) {
+                }
+                mmSocket = null;
+                throw new IOException(ex);
+            }
+
+            if (Log.isLoggable(TAG, Log.VERBOSE)) {
+                Log.v(TAG, "Got rfComm socket!");
+            }
+
+            if (mmSocket != null) {
                 if (mmSocket != null) {
                     mmSocket.connect();
-                    if (!doRun) return;
-                    connectionEstablished = true;
-                    return;
                 }
-            } catch (IOException connectException) {
+            }
+        }
 
-                // connection failed
-                if (messageListener != null) {
-                    messageListener.haveMessage(MESSAGE_RETRY);
+        // brute force stop of the Attys
+        // bluetooth is so terrible in full duplex that this is required!
+
+        private synchronized void stopADC() throws IOException {
+            String s = "\r\n\r\n\r\nx=0\r";
+            byte[] bytes = s.getBytes();
+            if (mmSocket != null) {
+                if (!mmSocket.isConnected()) throw new IOException();
+            }
+            for (int j = 0; j < 100; j++) {
+                if (Log.isLoggable(TAG, Log.DEBUG)) {
+                    Log.d(TAG, "Trying to stop the data acquisition. Attempt #" + (j + 1) + ".");
                 }
-
                 try {
-                    if (mmSocket != null) {
-                        mmSocket.close();
-                    }
-                } catch (IOException e1) {
-                }
-
-                try {
-                    mmSocket = null;
-                    Method createMethod = bluetoothDevice.getClass().
-                            getMethod("createInsecureRfcommSocket", int.class);
-                    mmSocket = (BluetoothSocket) createMethod.invoke(bluetoothDevice, 1);
-                    if (!doRun) return;
-                } catch (Exception ex) {
                     if (Log.isLoggable(TAG, Log.DEBUG)) {
-                        Log.d(TAG, "Could not get rfComm socket (w/o UUID):", ex);
+                        Log.d(TAG, "flushing stream");
                     }
-                    try {
-                        if (mmSocket != null) {
-                            mmSocket.close();
-                        }
-                    } catch (Exception closeExeption) {
+                    if (mmOutStream == null) throw new IOException();
+                    mmOutStream.flush();
+                    if (Log.isLoggable(TAG, Log.DEBUG)) {
+                        Log.d(TAG, "Sending x=0");
                     }
-                    mmSocket = null;
-                    throw new IOException(ex);
+                    if (mmOutStream == null) throw new IOException();
+                    mmOutStream.write(bytes);
+                    if (mmOutStream == null) throw new IOException();
+                    mmOutStream.flush();
+                } catch (IOException e) {
+                    if (Log.isLoggable(TAG, Log.ERROR)) {
+                        Log.e(TAG, "Could not send 'x=0' (=stop requ) to the Attys:" + e.getMessage());
+                    }
+                    throw new IOException(e);
                 }
-
-                // let's try to connect
-                try {
-                    if (mmSocket != null) {
-                        yield();
-                        mmSocket.connect();
-                        if (!doRun) return;
-                        connectionEstablished = true;
-                        return;
-                    }
-                } catch (IOException e2) {
-
-                    yield();
-                    try {
-                        sleep(500);
-                    } catch (Exception ee) {}
-
-                    int numFinalAttempts = 5;
-                    for(int i=0;i<numFinalAttempts;i++) {
-                        try {
-                            if (Log.isLoggable(TAG, Log.DEBUG)) {
-                                Log.d(TAG, String.format("Further attempt #%d for insec conn",i));
-                            }
-                            if (mmSocket != null) {
-                                mmSocket.close();
-                            }
-                            mmSocket = bluetoothDevice.createInsecureRfcommSocketToServiceRecord(uuid);
-                            if (!doRun) return;
-                        } catch (Exception e) {
-                            if (Log.isLoggable(TAG, Log.ERROR)) {
-                                Log.e(TAG, "Could not get bluetooth socket!", e);
-                            }
-                            mmSocket = null;
-                            throw new IOException(e);
-                        }
-
-                        yield();
-                        try {
-                            sleep(100);
-                        } catch (Exception ee) {}
-
-
-                        try {
-                            if (mmSocket != null) {
-                                if (!doRun) return;
-                                mmSocket.connect();
-                                if (!doRun) return;
-                                connectionEstablished = true;
-                                return;
-                            } else {
-                                if (i == (numFinalAttempts-1)) {
-                                    throw new IOException(new IOException("mmSocket == NULL"));
+                if (inScanner == null) return;
+                for (int i = 0; i < 100; i++) {
+                    if (inScanner != null) {
+                        if (inScanner.hasNextLine()) {
+                            if (inScanner != null) {
+                                String l = inScanner.nextLine();
+                                if (l.equals("OK")) {
+                                    if (Log.isLoggable(TAG, Log.DEBUG)) {
+                                        Log.d(TAG, "ADC stopped. Now in command mode.");
+                                    }
+                                    return;
+                                } else {
+                                    Thread.yield();
                                 }
-                            }
-                        } catch (IOException e4) {
-
-                            try {
-                                if (mmSocket != null) {
-                                    mmSocket.close();
-                                }
-                                mmSocket = null;
-                            } catch (IOException e) {
-                            }
-
-                            connectionEstablished = false;
-                            fatalError = true;
-                            if (Log.isLoggable(TAG, Log.DEBUG)) {
-                                Log.d(TAG, "Could not establish connection to Attys: " +
-                                        e4.getMessage());
-                            }
-                            if (i == (numFinalAttempts-1)) {
-                                throw new IOException("Final connection attempt failed to connect to Attys");
                             }
                         }
                     }
                 }
             }
-            if (!doRun) return;
-            connectionEstablished = true;
-            if (Log.isLoggable(TAG, Log.VERBOSE)) {
-                Log.v(TAG, "Connected to socket!");
+            if (Log.isLoggable(TAG, Log.ERROR)) {
+                Log.e(TAG, "Could not detect OK after x=0!");
             }
         }
-    }
 
 
-    // brute force stop of the Attys
-    // bluetooth is so terrible in full duplex that this is required!
-
-    private synchronized void stopADC() throws IOException {
-        String s = "\r\n\r\n\r\nx=0\r";
-        byte[] bytes = s.getBytes();
-        if (mmSocket != null) {
-            if (!mmSocket.isConnected()) throw new IOException();
-        }
-        for (int j = 0; j < 100; j++) {
-            if (Log.isLoggable(TAG, Log.DEBUG)) {
-                Log.d(TAG, "Trying to stop the data acquisition. Attempt #" + (j + 1) + ".");
-            }
+        private synchronized void startADC() throws IOException {
+            String s = "x=1\r";
+            byte[] bytes = s.getBytes();
             try {
-                if (Log.isLoggable(TAG, Log.DEBUG)) {
-                    Log.d(TAG, "flushing stream");
+                if (mmOutStream != null) {
+                    mmOutStream.flush();
+                    mmOutStream.write(13);
+                    mmOutStream.write(10);
+                    mmOutStream.write(bytes);
+                    mmOutStream.flush();
+                    if (Log.isLoggable(TAG, Log.DEBUG)) {
+                        Log.d(TAG, "ADC started. Now acquiring data.");
+                    }
                 }
-                if (mmOutStream == null) throw new IOException();
-                mmOutStream.flush();
-                if (Log.isLoggable(TAG, Log.DEBUG)) {
-                    Log.d(TAG, "Sending x=0");
-                }
-                if (mmOutStream == null) throw new IOException();
-                mmOutStream.write(bytes);
-                if (mmOutStream == null) throw new IOException();
-                mmOutStream.flush();
             } catch (IOException e) {
                 if (Log.isLoggable(TAG, Log.ERROR)) {
-                    Log.e(TAG, "Could not send 'x=0' (=stop requ) to the Attys:" + e.getMessage());
+                    Log.e(TAG, "Could not send x=1 to the Attys.");
                 }
                 throw new IOException(e);
             }
-            if (inScanner == null) return;
-            for (int i = 0; i < 100; i++) {
+        }
+
+
+        private synchronized void sendSyncCommand(String s) throws IOException {
+            byte[] bytes = s.getBytes();
+
+            try {
+                if (mmOutStream != null) {
+                    mmOutStream.flush();
+                    mmOutStream.write(10);
+                    mmOutStream.write(13);
+                    mmOutStream.write(bytes);
+                    mmOutStream.write(13);
+                    mmOutStream.flush();
+                } else {
+                    return;
+                }
+            } catch (IOException e) {
+                if (Log.isLoggable(TAG, Log.ERROR)) {
+                    Log.e(TAG, "Could not send: " + s);
+                }
+                throw new IOException(e);
+            }
+            for (int j = 0; j < 100; j++) {
                 if (inScanner != null) {
                     if (inScanner.hasNextLine()) {
                         if (inScanner != null) {
                             String l = inScanner.nextLine();
                             if (l.equals("OK")) {
                                 if (Log.isLoggable(TAG, Log.DEBUG)) {
-                                    Log.d(TAG, "ADC stopped. Now in command mode.");
+                                    Log.d(TAG, "Sent successfully '" + s + "' to the Attys.");
                                 }
                                 return;
                             } else {
-                                yield();
+                                try {
+                                    Thread.sleep(10);
+                                } catch (InterruptedException e) {
+                                }
                             }
                         }
                     }
                 }
             }
-        }
-        if (Log.isLoggable(TAG, Log.ERROR)) {
-            Log.e(TAG, "Could not detect OK after x=0!");
-        }
-    }
-
-
-    private synchronized void startADC() throws IOException {
-        String s = "x=1\r";
-        byte[] bytes = s.getBytes();
-        try {
-            if (mmOutStream != null) {
-                mmOutStream.flush();
-                mmOutStream.write(13);
-                mmOutStream.write(10);
-                mmOutStream.write(bytes);
-                mmOutStream.flush();
-                if (Log.isLoggable(TAG, Log.DEBUG)) {
-                    Log.d(TAG, "ADC started. Now acquiring data.");
-                }
-            }
-        } catch (IOException e) {
             if (Log.isLoggable(TAG, Log.ERROR)) {
-                Log.e(TAG, "Could not send x=1 to the Attys.");
+                Log.e(TAG, "ATTYS hasn't replied with OK after command: " + s + ".");
             }
-            throw new IOException(e);
+            throw new IOException();
         }
-    }
 
 
-    private synchronized void sendSyncCommand(String s) throws IOException {
-        byte[] bytes = s.getBytes();
-
-        try {
-            if (mmOutStream != null) {
-                mmOutStream.flush();
-                mmOutStream.write(10);
-                mmOutStream.write(13);
-                mmOutStream.write(bytes);
-                mmOutStream.write(13);
-                mmOutStream.flush();
-            } else {
-                return;
-            }
-        } catch (IOException e) {
-            if (Log.isLoggable(TAG, Log.ERROR)) {
-                Log.e(TAG, "Could not send: " + s);
-            }
-            throw new IOException(e);
+        private synchronized void sendSamplingRate() throws IOException {
+            sendSyncCommand("r=" + adc_rate_index);
         }
-        for (int j = 0; j < 100; j++) {
+
+        private synchronized void sendFullscaleAccelRange() throws IOException {
+            sendSyncCommand("t=" + accel_full_scale_index);
+        }
+
+        private synchronized void sendFullOrPartialData() throws IOException {
+            sendSyncCommand("f=" + fullOrPartialData);
+        }
+
+        private synchronized void sendCurrentMask() throws IOException {
+            sendSyncCommand("c=" + current_mask);
+        }
+
+        private synchronized void sendBiasCurrent() throws IOException {
+            sendSyncCommand("i=" + current_index);
+        }
+
+        private synchronized void sendGainMux(int channel, byte gain, byte mux) throws IOException {
+            int v = (mux & 0x0f) | ((gain & 0x0f) << 4);
+            switch (channel) {
+                case 0:
+                    sendSyncCommand("a=" + v);
+                    break;
+                case 1:
+                    sendSyncCommand("b=" + v);
+                    break;
+            }
+            adcGainRegister[channel] = gain;
+            adcMuxRegister[channel] = mux;
+        }
+
+        private synchronized void setADCGain(int channel, byte gain) throws IOException {
+            sendGainMux(channel, gain, adcMuxRegister[channel]);
+        }
+
+        private synchronized void setADCMux(int channel, byte mux) throws IOException {
+            sendGainMux(channel, adcGainRegister[channel], mux);
+        }
+
+        private synchronized void sendInit() throws IOException {
+            stopADC();
+            // switching to base64 encoding
+            sendSyncCommand("d=1");
+            sendSamplingRate();
+            sendFullOrPartialData();
+            sendFullscaleAccelRange();
+            sendGainMux(0, adc0_gain_index, adc0_mux_index);
+            sendGainMux(1, adc1_gain_index, adc1_mux_index);
+            sendCurrentMask();
+            sendBiasCurrent();
+            startADC();
+        }
+
+        /* Call this from the main activity to shutdown the connection */
+        public synchronized void cancel() {
+            doRun = false;
             if (inScanner != null) {
-                if (inScanner.hasNextLine()) {
-                    if (inScanner != null) {
-                        String l = inScanner.nextLine();
-                        if (l.equals("OK")) {
-                            if (Log.isLoggable(TAG, Log.DEBUG)) {
-                                Log.d(TAG, "Sent successfully '" + s + "' to the Attys.");
-                            }
-                            return;
-                        } else {
-                            try {
-                                sleep(10);
-                            } catch (InterruptedException e) {
-                            }
-                        }
-                    }
+                inScanner.close();
+            }
+            if (mmInStream != null) {
+                try {
+                    mmInStream.close();
+                } catch (IOException e) {
                 }
             }
-        }
-        if (Log.isLoggable(TAG, Log.ERROR)) {
-            Log.e(TAG, "ATTYS hasn't replied with OK after command: " + s + ".");
-        }
-        throw new IOException();
-    }
-
-
-    private synchronized void sendSamplingRate() throws IOException {
-        sendSyncCommand("r=" + adc_rate_index);
-    }
-
-    private synchronized void sendFullscaleAccelRange() throws IOException {
-        sendSyncCommand("t=" + accel_full_scale_index);
-    }
-
-    private synchronized void sendFullOrPartialData() throws IOException {
-        sendSyncCommand("f=" + fullOrPartialData);
-    }
-
-    private synchronized void sendCurrentMask() throws IOException {
-        sendSyncCommand("c=" + current_mask);
-    }
-
-    private synchronized void sendBiasCurrent() throws IOException {
-        sendSyncCommand("i=" + current_index);
-    }
-
-    private synchronized void sendGainMux(int channel, byte gain, byte mux) throws IOException {
-        int v = (mux & 0x0f) | ((gain & 0x0f) << 4);
-        switch (channel) {
-            case 0:
-                sendSyncCommand("a=" + v);
-                break;
-            case 1:
-                sendSyncCommand("b=" + v);
-                break;
-        }
-        adcGainRegister[channel] = gain;
-        adcMuxRegister[channel] = mux;
-    }
-
-    private synchronized void setADCGain(int channel, byte gain) throws IOException {
-        sendGainMux(channel, gain, adcMuxRegister[channel]);
-    }
-
-    private synchronized void setADCMux(int channel, byte mux) throws IOException {
-        sendGainMux(channel, adcGainRegister[channel], mux);
-    }
-
-    private synchronized void sendInit() throws IOException {
-        stopADC();
-        // switching to base64 encoding
-        sendSyncCommand("d=1");
-        sendSamplingRate();
-        sendFullOrPartialData();
-        sendFullscaleAccelRange();
-        sendGainMux(0, adc0_gain_index, adc0_mux_index);
-        sendGainMux(1, adc1_gain_index, adc1_mux_index);
-        sendCurrentMask();
-        sendBiasCurrent();
-        startADC();
-    }
-
-    public void run() {
-
-        long[] data = new long[NCHANNELS];
-        byte[] raw;
-        float[] sample = new float[NCHANNELS];
-
-        int nTrans = 1;
-
-        try {
-            connectToAttys();
+            if (mmOutStream != null) {
+                try {
+                    mmOutStream.close();
+                } catch (IOException e) {
+                }
+            }
             if (mmSocket != null) {
-                mmInStream = mmSocket.getInputStream();
-                mmOutStream = mmSocket.getOutputStream();
-                inScanner = new Scanner(mmInStream);
-                ringBuffer = new float[nMem][NCHANNELS];
-                isConnected = true;
+                try {
+                    mmSocket.close();
+                } catch (Exception e) {
+                }
             }
-        } catch (IOException e) {
-            if (Log.isLoggable(TAG, Log.ERROR)) {
-                Log.e(TAG, "Could not get streams", e);
-            }
+            mmSocket = null;
             isConnected = false;
-            fatalError = true;
+            fatalError = false;
             mmInStream = null;
             mmOutStream = null;
             inScanner = null;
             ringBuffer = null;
-            if (messageListener != null) {
-                messageListener.haveMessage(MESSAGE_ERROR);
+            if (Log.isLoggable(TAG, Log.DEBUG)) {
+                Log.d(TAG, "Stopped data acquisition. All streams have been shut down successfully.");
             }
-            return;
         }
 
-        if (!doRun) return;
-
-        if (messageListener != null) {
-            messageListener.haveMessage(MESSAGE_CONFIGURE);
+        public AttysRunnable(BluetoothDevice _btdev) {
+            bluetoothDevice = _btdev;
         }
 
-        if (!doRun) return;
+        public void run() {
 
-        try {
-            sendInit();
-        } catch (IOException e) {
-            if (Log.isLoggable(TAG, Log.ERROR)) {
-                Log.e(TAG, "Attys init failure");
-            }
-            if (messageListener != null) {
-                messageListener.haveMessage(MESSAGE_ERROR);
-            }
-            return;
-        }
+            long[] data = new long[NCHANNELS];
+            byte[] raw;
+            float[] sample = new float[NCHANNELS];
 
-        if (!doRun) return;
+            adcMuxRegister = new byte[2];
+            adcMuxRegister[0] = 0;
+            adcMuxRegister[1] = 0;
+            adcGainRegister = new byte[2];
+            adcGainRegister[0] = 0;
+            adcGainRegister[1] = 0;
+            boolean[] adcCurrNegOn = new boolean[2];
+            adcCurrNegOn[0] = false;
+            adcCurrNegOn[1] = false;
+            boolean[] adcCurrPosOn = new boolean[2];
+            adcCurrPosOn[0] = false;
+            adcCurrNegOn[1] = false;
 
-        if (Log.isLoggable(TAG, Log.DEBUG)) {
-            Log.d(TAG, "Starting main data acquistion loop");
-        }
-        if (messageListener != null) {
-            messageListener.haveMessage(MESSAGE_CONNECTED);
-        }
-        // Keep listening to the InputStream until an exception occurs
-        while (doRun) {
-            try {
-                // Read from the InputStream
-                if ((inScanner != null) && inScanner.hasNextLine()) {
-                    // get a line from the Attys
-                    String oneLine;
-                    if (inScanner != null) {
-                        oneLine = inScanner.nextLine();
-                        //Log.d(TAG, oneLine);
-                    } else {
-                        return;
+            int nTrans = 1;
+
+            while ((doRun) && (!isConnected)) {
+                try {
+                    connectToAttys();
+                    if (mmSocket != null) {
+                        mmInStream = mmSocket.getInputStream();
+                        mmOutStream = mmSocket.getOutputStream();
+                        inScanner = new Scanner(mmInStream);
+                        ringBuffer = new float[nMem][NCHANNELS];
+                        isConnected = true;
+                        if (messageListener != null) {
+                            messageListener.haveMessage(MESSAGE_CONFIGURE);
+                        }
+                        sendInit();
                     }
-                    if (!oneLine.equals("OK")) {
-                        // we have a real sample
-                        try {
-                            raw = Base64.decode(oneLine, Base64.DEFAULT);
+                } catch (IOException e) {
+                    if (Log.isLoggable(TAG, Log.DEBUG)) {
+                        Log.d(TAG, "Connect failed. Retrying...");
+                    }
 
-                            for (int i = 0; i < 2; i++) {
-                                long v = (raw[i * 3] & 0xff)
-                                        | ((raw[i * 3 + 1] & 0xff) << 8)
-                                        | ((raw[i * 3 + 2] & 0xff) << 16);
-                                data[INDEX_Analogue_channel_1 + i] = v;
-                            }
+                }
+            }
 
-                            if (fullOrPartialData == FULL_DATA) {
-                                for (int i = 0; i < 6; i++) {
-                                    long v = (raw[8 + i * 2] & 0xff)
-                                            | ((raw[8 + i * 2 + 1] & 0xff) << 8);
-                                    data[i] = v;
+            if (!doRun) return;
+
+            if (Log.isLoggable(TAG, Log.DEBUG)) {
+                Log.d(TAG, "Starting main data acquistion loop");
+            }
+            if (messageListener != null) {
+                messageListener.haveMessage(MESSAGE_CONNECTED);
+            }
+            // Keep listening to the InputStream until an exception occurs
+            while (doRun) {
+                try {
+                    // Read from the InputStream
+                    if ((inScanner != null) && inScanner.hasNextLine()) {
+                        // get a line from the Attys
+                        String oneLine;
+                        if (inScanner != null) {
+                            oneLine = inScanner.nextLine();
+                            //Log.d(TAG, oneLine);
+                        } else {
+                            return;
+                        }
+                        if (!oneLine.equals("OK")) {
+                            // we have a real sample
+                            try {
+                                raw = Base64.decode(oneLine, Base64.DEFAULT);
+
+                                for (int i = 0; i < 2; i++) {
+                                    long v = (raw[i * 3] & 0xff)
+                                            | ((raw[i * 3 + 1] & 0xff) << 8)
+                                            | ((raw[i * 3 + 2] & 0xff) << 16);
+                                    data[INDEX_Analogue_channel_1 + i] = v;
                                 }
-                            }
 
-                            /**
-                             Log.d(TAG,String.format("%d,%d,%d, %d,%d,%d, %d,%d",
-                             data[0],data[1],data[2],
-                             data[3],data[4],data[5],
-                             data[6],data[7]));
-                             **/
-
-                            // check that the timestamp is the expected one
-                            byte ts = 0;
-                            nTrans = 1;
-                            if (raw.length > 7) {
-                                // Log.d(TAG,"tbcorr");
-                                ts = raw[7];
-                                if ((ts - expectedTimestamp) > 0) {
-                                    if (correctTimestampDifference) {
-                                        nTrans = 1 + (ts - expectedTimestamp);
-                                        if (Log.isLoggable(TAG, Log.DEBUG)) {
-                                            Log.d(TAG, String.format("Timestamp=%s,expected=%d",
-                                                    ts, expectedTimestamp));
-                                        }
-                                    } else {
-                                        correctTimestampDifference = true;
+                                if (fullOrPartialData == FULL_DATA) {
+                                    for (int i = 0; i < 6; i++) {
+                                        long v = (raw[8 + i * 2] & 0xff)
+                                                | ((raw[8 + i * 2 + 1] & 0xff) << 8);
+                                        data[i] = v;
                                     }
                                 }
-                            }
-                            // update timestamp
-                            expectedTimestamp = ++ts;
 
-                        } catch (Exception e) {
-                            // this is triggered if the base64 is too short or any data is too short
-                            // this leads to data processed from the previous sample instead
+                                /**
+                                 Log.d(TAG,String.format("%d,%d,%d, %d,%d,%d, %d,%d",
+                                 data[0],data[1],data[2],
+                                 data[3],data[4],data[5],
+                                 data[6],data[7]));
+                                 **/
+
+                                // check that the timestamp is the expected one
+                                byte ts = 0;
+                                nTrans = 1;
+                                if (raw.length > 7) {
+                                    // Log.d(TAG,"tbcorr");
+                                    ts = raw[7];
+                                    if ((ts - expectedTimestamp) > 0) {
+                                        if (correctTimestampDifference) {
+                                            nTrans = 1 + (ts - expectedTimestamp);
+                                            if (Log.isLoggable(TAG, Log.DEBUG)) {
+                                                Log.d(TAG, String.format("Timestamp=%s,expected=%d",
+                                                        ts, expectedTimestamp));
+                                            }
+                                        } else {
+                                            correctTimestampDifference = true;
+                                        }
+                                    }
+                                }
+                                // update timestamp
+                                expectedTimestamp = ++ts;
+
+                            } catch (Exception e) {
+                                // this is triggered if the base64 is too short or any data is too short
+                                // this leads to data processed from the previous sample instead
+                                if (Log.isLoggable(TAG, Log.DEBUG)) {
+                                    Log.d(TAG, "reception error: " + oneLine, e);
+                                }
+                                expectedTimestamp++;
+                            }
+
+                            // acceleration
+                            for (int i = AttysComm.INDEX_Acceleration_X;
+                                 i <= AttysComm.INDEX_Acceleration_Z; i++) {
+                                float norm = 0x8000;
+                                try {
+                                    sample[i] = ((float) data[i] - norm) / norm *
+                                            getAccelFullScaleRange();
+                                } catch (Exception e) {
+                                    if (Log.isLoggable(TAG, Log.DEBUG)) {
+                                        Log.d(TAG, "Acc conv err");
+                                    }
+                                    sample[i] = 0;
+                                }
+                            }
+
+                            // magnetometer
+                            for (int i = AttysComm.INDEX_Magnetic_field_X;
+                                 i <= AttysComm.INDEX_Magnetic_field_Z; i++) {
+                                float norm = 0x8000;
+                                try {
+                                    sample[i] = ((float) data[i] - norm) / norm *
+                                            MAG_FULL_SCALE;
+                                    //Log.d(TAG,"i="+i+","+sample[i]);
+                                } catch (Exception e) {
+                                    if (Log.isLoggable(TAG, Log.DEBUG)) {
+                                        Log.d(TAG, "Mag conv err");
+                                    }
+                                    sample[i] = 0;
+                                }
+                            }
+
+                            for (int i = AttysComm.INDEX_Analogue_channel_1;
+                                 i <= AttysComm.INDEX_Analogue_channel_2; i++) {
+                                float norm = 0x800000;
+                                try {
+                                    sample[i] = ((float) data[i] - norm) / norm *
+                                            ADC_REF / ADC_GAIN_FACTOR[adcGainRegister[i
+                                            - AttysComm.INDEX_Analogue_channel_1]];
+                                } catch (Exception e) {
+                                    sample[i] = 0;
+                                }
+                            }
+
+                            // in case a sample has been lost
+                            for (int j = 0; j < nTrans; j++) {
+                                if (dataListener != null) {
+                                    dataListener.gotData(sampleNumber, sample);
+                                }
+                                if (ringBuffer != null) {
+                                    System.arraycopy(sample, 0, ringBuffer[inPtr], 0, sample.length);
+                                }
+                                timestamp = timestamp + 1.0 / getSamplingRateInHz();
+                                sampleNumber++;
+                                inPtr++;
+                                if (inPtr == nMem) {
+                                    inPtr = 0;
+                                }
+                            }
+
+                        } else {
                             if (Log.isLoggable(TAG, Log.DEBUG)) {
-                                Log.d(TAG, "reception error: " + oneLine,e);
+                                Log.d(TAG, "OK caught from the Attys");
                             }
-                            expectedTimestamp++;
-                        }
-
-                        // acceleration
-                        for (int i = AttysComm.INDEX_Acceleration_X;
-                             i <= AttysComm.INDEX_Acceleration_Z; i++) {
-                            float norm = 0x8000;
-                            try {
-                                sample[i] = ((float) data[i] - norm) / norm *
-                                        getAccelFullScaleRange();
-                            } catch (Exception e) {
-                                if (Log.isLoggable(TAG, Log.DEBUG)) {
-                                    Log.d(TAG, "Acc conv err");
-                                }
-                                sample[i] = 0;
-                            }
-                        }
-
-                        // magnetometer
-                        for (int i = AttysComm.INDEX_Magnetic_field_X;
-                             i <= AttysComm.INDEX_Magnetic_field_Z; i++) {
-                            float norm = 0x8000;
-                            try {
-                                sample[i] = ((float) data[i] - norm) / norm *
-                                        MAG_FULL_SCALE;
-                                //Log.d(TAG,"i="+i+","+sample[i]);
-                            } catch (Exception e) {
-                                if (Log.isLoggable(TAG, Log.DEBUG)) {
-                                    Log.d(TAG, "Mag conv err");
-                                }
-                                sample[i] = 0;
-                            }
-                        }
-
-                        for (int i = AttysComm.INDEX_Analogue_channel_1;
-                             i <= AttysComm.INDEX_Analogue_channel_2; i++) {
-                            float norm = 0x800000;
-                            try {
-                                sample[i] = ((float) data[i] - norm) / norm *
-                                        ADC_REF / ADC_GAIN_FACTOR[adcGainRegister[i
-                                        - AttysComm.INDEX_Analogue_channel_1]];
-                            } catch (Exception e) {
-                                sample[i] = 0;
-                            }
-                        }
-
-                        // in case a sample has been lost
-                        for (int j = 0; j < nTrans; j++) {
-                            if (dataListener != null) {
-                                dataListener.gotData(sampleNumber, sample);
-                            }
-                            if (ringBuffer != null) {
-                                System.arraycopy(sample, 0, ringBuffer[inPtr], 0, sample.length);
-                            }
-                            timestamp = timestamp + 1.0 / getSamplingRateInHz();
-                            sampleNumber++;
-                            inPtr++;
-                            if (inPtr == nMem) {
-                                inPtr = 0;
-                            }
-                        }
-
-                    } else {
-                        if (Log.isLoggable(TAG, Log.DEBUG)) {
-                            Log.d(TAG, "OK caught from the Attys");
                         }
                     }
+                } catch (Exception e) {
+                    if (Log.isLoggable(TAG, Log.DEBUG)) {
+                        Log.d(TAG, "Stream lost or closing.", e);
+                    }
+                    break;
                 }
-            } catch (Exception e) {
-                if (Log.isLoggable(TAG, Log.DEBUG)) {
-                    Log.d(TAG, "Stream lost or closing.", e);
-                }
-                break;
             }
         }
     }
@@ -988,39 +903,4 @@ public class AttysComm extends Thread {
         }
     }
 
-    /* Call this from the main activity to shutdown the connection */
-    public synchronized void cancel() {
-        doRun = false;
-        if (inScanner != null) {
-            inScanner.close();
-        }
-        if (mmInStream != null) {
-            try {
-                mmInStream.close();
-            } catch (IOException e) {
-            }
-        }
-        if (mmOutStream != null) {
-            try {
-                mmOutStream.close();
-            } catch (IOException e) {
-            }
-        }
-        if (mmSocket != null) {
-            try {
-                mmSocket.close();
-            } catch (Exception e) {
-            }
-        }
-        mmSocket = null;
-        isConnected = false;
-        fatalError = false;
-        mmInStream = null;
-        mmOutStream = null;
-        inScanner = null;
-        ringBuffer = null;
-        if (Log.isLoggable(TAG, Log.DEBUG)) {
-            Log.d(TAG, "Stopped data acquisition. All streams have been shut down successfully.");
-        }
-    }
 }
