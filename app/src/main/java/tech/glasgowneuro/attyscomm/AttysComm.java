@@ -428,7 +428,7 @@ public class AttysComm {
         private Scanner inScanner = null;
         private InputStream mmInStream = null;
         private OutputStream mmOutStream = null;
-        private BluetoothDevice bluetoothDevice;
+        private final BluetoothDevice bluetoothDevice;
 
         private byte[] adcMuxRegister = null;
         private byte[] adcGainRegister = null;
@@ -448,6 +448,9 @@ public class AttysComm {
                 } catch (Exception e) {}
             }
             mmSocket = null;
+            inScanner = null;
+            mmInStream = null;
+            mmOutStream = null;
 
             if (bluetoothDevice == null) {
                 if (Log.isLoggable(TAG, Log.ERROR)) {
@@ -505,17 +508,9 @@ public class AttysComm {
                 inScanner = new Scanner(mmInStream);
             } catch (Exception es) {
                 try {
-                    mmInStream.close();
-                } catch (Exception ine) {}
-                try {
-                    mmOutStream.close();
-                } catch (Exception oute) {}
-                try {
                     mmSocket.close();
                 } catch (Exception sc2) {}
                 mmSocket = null;
-                mmInStream = null;
-                mmOutStream = null;
                 if (Log.isLoggable(TAG, Log.VERBOSE)) {
                     Log.v(TAG, "couldn't get streams");
                 }
@@ -904,54 +899,11 @@ public class AttysComm {
                     break;
                 }
             }
-            if (inScanner != null) {
-                if (Log.isLoggable(TAG, Log.DEBUG)) {
-                    Log.d(TAG, "closing inScanner");
-                }
-                inScanner.close();
-            }
-            if (mmInStream != null) {
-                try {
-                    if (Log.isLoggable(TAG, Log.DEBUG)) {
-                        Log.d(TAG, "closing mmInStream");
-                    }
-                    mmInStream.close();
-                } catch (IOException e) {
-                    if (Log.isLoggable(TAG, Log.DEBUG)) {
-                        Log.d(TAG, "error closing mmInStream");
-                    }
-                }
-            }
-            if (mmOutStream != null) {
-                try {
-                    if (Log.isLoggable(TAG, Log.DEBUG)) {
-                        Log.d(TAG, "closing mmOutStream");
-                    }
-                    mmOutStream.close();
-                } catch (IOException e) {
-                    if (Log.isLoggable(TAG, Log.DEBUG)) {
-                        Log.d(TAG, "error closing mmOutStream");
-                    }
-                }
-            }
-            if (mmSocket != null) {
-                try {
-                    if (Log.isLoggable(TAG, Log.DEBUG)) {
-                        Log.d(TAG, "closing socket");
-                    }
-                    mmSocket.close();
-                } catch (Exception e) {
-                    if (Log.isLoggable(TAG, Log.DEBUG)) {
-                        Log.d(TAG, "error closing socket");
-                    }
-                }
-            }
-            mmSocket = null;
             isConnected = false;
             fatalError = false;
-            mmInStream = null;
-            mmOutStream = null;
-            inScanner = null;
+            try {
+                mmSocket.close();
+            } catch (Exception e) {};
             if (Log.isLoggable(TAG, Log.DEBUG)) {
                 Log.d(TAG, "Data acquisition has been shut down.");
             }
