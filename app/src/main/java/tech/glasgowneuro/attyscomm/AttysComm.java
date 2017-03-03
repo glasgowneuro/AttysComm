@@ -379,14 +379,12 @@ public class AttysComm {
     // Constructor: takes the bluetooth device as an argument
     // it then tries to connect to the Attys
     public AttysComm(BluetoothDevice _device) {
-        ringBuffer = new float[RINGBUFFERSIZE][NCHANNELS];
-        attysRunnable = new AttysRunnable(_device);
-        attysThread = new Thread(attysRunnable);
+        bluetoothDevice = _device;
     }
 
 
     public void start() {
-        attysThread.start();
+        new Thread(attysRunnable).start();
     }
 
 
@@ -395,50 +393,38 @@ public class AttysComm {
             Log.d(TAG, "Stopping AttysComm");
         }
         attysRunnable.cancel();
-        try {
-            attysThread.join();
-        } catch (Exception e) {
-        }
-        attysThread = null;
-        attysRunnable = null;
     }
 
 
     ///////////////////////////////////////////////////////
     // from here it's private
     private static final String TAG = "AttysComm";
-    private AttysRunnable attysRunnable = null;
-    private Thread attysThread = null;
-    private boolean fatalError = false;
-    private float[][] ringBuffer = null;
     final private int RINGBUFFERSIZE = 1000;
+    private final AttysRunnable attysRunnable = new AttysRunnable();
+    private boolean fatalError = false;
+    private final float[][] ringBuffer = new float[RINGBUFFERSIZE][NCHANNELS];
     private int inPtr = 0;
     private int outPtr = 0;
     private boolean isConnected = false;
     private double timestamp = 0.0; // in secs
+    BluetoothDevice bluetoothDevice = null;
 
     // standard SPP uid
     UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
 
 
-    class AttysRunnable implements Runnable {
+    private class AttysRunnable implements Runnable {
 
-        boolean doRun = true;
+        private boolean doRun = true;
         private BluetoothSocket mmSocket = null;
         private Scanner inScanner = null;
         private InputStream mmInStream = null;
         private OutputStream mmOutStream = null;
-        private final BluetoothDevice bluetoothDevice;
-
         private byte[] adcMuxRegister = null;
         private byte[] adcGainRegister = null;
 
         private boolean correctTimestampDifference = false;
         private byte expectedTimestamp = 0;
-
-        public AttysRunnable(BluetoothDevice _btdev) {
-            bluetoothDevice = _btdev;
-        }
 
         public void connectToAttys() throws IOException {
 
@@ -458,9 +444,6 @@ public class AttysComm {
                 }
                 throw new IOException();
             }
-
-            if (bluetoothDevice == null) throw new IOException();
-            // Get a BluetoothSocket to connect with the given BluetoothDevice
 
             if (messageListener != null) {
                 messageListener.haveMessage(MESSAGE_CONNECTING);
