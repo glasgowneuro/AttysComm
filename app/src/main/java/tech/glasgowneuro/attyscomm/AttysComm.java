@@ -590,7 +590,7 @@ public class AttysComm {
                     throw e;
                 }
                 if (inScanner == null) return;
-                for (int i = 0; i < 100; i++) {
+                for (int i = 0; (i < 100) && doRun; i++) {
                     if (inScanner != null) {
                         if (inScanner.hasNextLine()) {
                             if (inScanner != null) {
@@ -657,7 +657,7 @@ public class AttysComm {
                 }
                 throw new IOException(e);
             }
-            for (int j = 0; j < 100; j++) {
+            for (int j = 0; (j < 100) && doRun; j++) {
                 if (inScanner != null) {
                     if (inScanner.hasNextLine()) {
                         if (inScanner != null) {
@@ -736,6 +736,7 @@ public class AttysComm {
         }
 
         private synchronized void sendInit() throws IOException {
+            if (!doRun) return;
             stopADC();
             // switching to base64 encoding
             sendSyncCommand("d=1");
@@ -758,8 +759,6 @@ public class AttysComm {
         }
 
         public void run() {
-
-            byte[] raw;
 
             doRun = true;
 
@@ -813,7 +812,7 @@ public class AttysComm {
                         if (!oneLine.equals("OK")) {
                             // we have a real sample
                             try {
-                                raw = Base64.decode(oneLine, Base64.DEFAULT);
+                                final byte[] raw = Base64.decode(oneLine, Base64.DEFAULT);
 
                                 for (int i = 0; i < 2; i++) {
                                     long v = (raw[i * 3] & 0xff)
