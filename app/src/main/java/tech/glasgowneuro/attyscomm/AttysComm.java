@@ -19,8 +19,10 @@
 
 package tech.glasgowneuro.attyscomm;
 
+import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.Intent;
 import android.util.Base64;
 import android.util.Log;
 
@@ -28,6 +30,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Scanner;
+import java.util.Set;
 import java.util.UUID;
 
 
@@ -361,6 +364,12 @@ public class AttysComm {
         return (inPtr != outPtr);
     }
 
+    // empties the ringbuffer
+    public void resetRingbuffer() {
+        inPtr = 0;
+        outPtr = 0;
+    }
+
     public int getNumSamplesAvilable() {
         int n = 0;
         int tmpOutPtr = outPtr;
@@ -375,6 +384,47 @@ public class AttysComm {
     }
 
 
+    // searches for an Attys. Use as:
+    //
+    // AttysComm attysComm = new AttysComm(AttysComm.findAttysBtDevice())
+    // but obviously it's better first to check that actually an Attys
+    // has been found. Otherwise it will be null.
+    //
+    static public synchronized BluetoothDevice findAttysBtDevice() {
+
+        final BluetoothAdapter BA = BluetoothAdapter.getDefaultAdapter();
+
+        if (BA == null) {
+            if (Log.isLoggable(TAG, Log.DEBUG)) {
+                Log.d(TAG, "no bluetooth adapter!");
+            }
+            return null;
+        }
+
+        final Set<BluetoothDevice> pairedDevices = BA.getBondedDevices();
+
+        if (pairedDevices == null) {
+            if (Log.isLoggable(TAG, Log.DEBUG)) {
+                Log.d(TAG, "No paired devices available. Exiting.");
+            }
+            return null;
+        }
+
+        for (BluetoothDevice bt : pairedDevices) {
+            String b = bt.getName();
+            if (Log.isLoggable(TAG, Log.DEBUG)) {
+                Log.d(TAG, "Paired dev=" + b);
+            }
+            if (b.startsWith("GN-ATTYS")) {
+                if (Log.isLoggable(TAG, Log.DEBUG)) {
+                    Log.d(TAG, "Found an Attys");
+                }
+                return bt;
+            }
+        }
+        return null;
+    }
+
     /////////////////////////////////////////////////
     // Constructor: takes the bluetooth device as an argument
     // it then tries to connect to the Attys
@@ -382,9 +432,10 @@ public class AttysComm {
         bluetoothDevice = _device;
     }
 
-
     public void start() {
-        new Thread(attysRunnable).start();
+        if ( bluetoothDevice != null ) {
+            new Thread(attysRunnable).start();
+        }
     }
 
 
@@ -399,15 +450,17 @@ public class AttysComm {
     ///////////////////////////////////////////////////////
     // from here it's private
     private static final String TAG = "AttysComm";
-    final private int RINGBUFFERSIZE = 1000;
+    private final int RINGBUFFERSIZE = 1000;
     private final AttysRunnable attysRunnable = new AttysRunnable();
     private boolean fatalError = false;
     private final float[][] ringBuffer = new float[RINGBUFFERSIZE][NCHANNELS];
+    private final float[] sample = new float[NCHANNELS];
+    private final long[] data = new long[NCHANNELS];
     private int inPtr = 0;
     private int outPtr = 0;
     private boolean isConnected = false;
     private double timestamp = 0.0; // in secs
-    BluetoothDevice bluetoothDevice = null;
+    private final BluetoothDevice bluetoothDevice;
 
     // standard SPP uid
     UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
@@ -706,9 +759,9 @@ public class AttysComm {
 
         public void run() {
 
-            long[] data = new long[NCHANNELS];
             byte[] raw;
-            float[] sample = new float[NCHANNELS];
+
+            doRun = true;
 
             adcMuxRegister = new byte[2];
             adcMuxRegister[0] = 0;
@@ -740,6 +793,10 @@ public class AttysComm {
             if (messageListener != null) {
                 messageListener.haveMessage(MESSAGE_CONNECTED);
             }
+
+            correctTimestampDifference = false;
+            expectedTimestamp = 0;
+
             // Keep listening to the InputStream until an exception occurs
             while (doRun) {
                 try {
