@@ -390,7 +390,7 @@ public class AttysComm {
     // but obviously it's better first to check that actually an Attys
     // has been found. Otherwise it will be null.
     //
-    static public synchronized BluetoothDevice findAttysBtDevice() {
+    static public BluetoothDevice findAttysBtDevice() {
 
         final BluetoothAdapter BA = BluetoothAdapter.getDefaultAdapter();
 
@@ -411,7 +411,7 @@ public class AttysComm {
         }
 
         for (BluetoothDevice bt : pairedDevices) {
-            String b = bt.getName();
+            final String b = bt.getName();
             if (Log.isLoggable(TAG, Log.DEBUG)) {
                 Log.d(TAG, "Paired dev=" + b);
             }
