@@ -19,18 +19,18 @@
 
 package tech.glasgowneuro.attyscomm;
 
+import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.Intent;
 import android.util.Base64;
 import android.util.Log;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.lang.reflect.Method;
 import java.util.Scanner;
+import java.util.Set;
 import java.util.UUID;
 
 
@@ -129,6 +129,8 @@ public class AttysComm {
     public int getFullOrPartialData() {
         return fullOrPartialData;
     }
+
+    private int fullOrPartialData = 1;
 
     ////////////////////////////////////////////////////////////////////////////
     // ADC gain
@@ -349,7 +351,7 @@ public class AttysComm {
                 sample = ringBuffer[outPtr];
             }
             outPtr++;
-            if (outPtr == nMem) {
+            if (outPtr == RINGBUFFERSIZE) {
                 outPtr = 0;
             }
             return sample;
@@ -362,13 +364,19 @@ public class AttysComm {
         return (inPtr != outPtr);
     }
 
+    // empties the ringbuffer
+    public void resetRingbuffer() {
+        inPtr = 0;
+        outPtr = 0;
+    }
+
     public int getNumSamplesAvilable() {
         int n = 0;
         int tmpOutPtr = outPtr;
         while (inPtr != tmpOutPtr) {
             tmpOutPtr++;
             n++;
-            if (tmpOutPtr == nMem) {
+            if (tmpOutPtr == RINGBUFFERSIZE) {
                 tmpOutPtr = 0;
             }
         }
@@ -376,65 +384,112 @@ public class AttysComm {
     }
 
 
+    // searches for an Attys. Use as:
+    //
+    // AttysComm attysComm = new AttysComm(AttysComm.findAttysBtDevice())
+    // but obviously it's better first to check that actually an Attys
+    // has been found. Otherwise it will be null.
+    //
+    static public BluetoothDevice findAttysBtDevice() {
+
+        final BluetoothAdapter BA = BluetoothAdapter.getDefaultAdapter();
+
+        if (BA == null) {
+            if (Log.isLoggable(TAG, Log.DEBUG)) {
+                Log.d(TAG, "no bluetooth adapter!");
+            }
+            return null;
+        }
+
+        final Set<BluetoothDevice> pairedDevices = BA.getBondedDevices();
+
+        if (pairedDevices == null) {
+            if (Log.isLoggable(TAG, Log.DEBUG)) {
+                Log.d(TAG, "No paired devices available. Exiting.");
+            }
+            return null;
+        }
+
+        for (BluetoothDevice bt : pairedDevices) {
+            final String b = bt.getName();
+            if (Log.isLoggable(TAG, Log.DEBUG)) {
+                Log.d(TAG, "Paired dev=" + b);
+            }
+            if (b.startsWith("GN-ATTYS")) {
+                if (Log.isLoggable(TAG, Log.DEBUG)) {
+                    Log.d(TAG, "Found an Attys");
+                }
+                return bt;
+            }
+        }
+        return null;
+    }
+
     /////////////////////////////////////////////////
     // Constructor: takes the bluetooth device as an argument
     // it then tries to connect to the Attys
     public AttysComm(BluetoothDevice _device) {
-        attysRunnable = new AttysRunnable(_device);
-        attysThread = new Thread(attysRunnable);
+        bluetoothDevice = _device;
     }
-
 
     public void start() {
-        attysThread.start();
+        if ( bluetoothDevice != null ) {
+            new Thread(attysRunnable).start();
+        }
     }
 
 
-    public void stop() {
+    public synchronized void stop() {
+        if (Log.isLoggable(TAG, Log.DEBUG)) {
+            Log.d(TAG, "Stopping AttysComm");
+        }
         attysRunnable.cancel();
-        try {
-            attysThread.join();
-        } catch (Exception e) {}
-        attysThread = null;
-        attysRunnable = null;
     }
 
 
     ///////////////////////////////////////////////////////
     // from here it's private
     private static final String TAG = "AttysComm";
-    private AttysRunnable attysRunnable = null;
-    private Thread attysThread = null;
-    private byte expectedTimestamp = 0;
-    private boolean correctTimestampDifference = false;
-    private BluetoothSocket mmSocket = null;
-    private Scanner inScanner = null;
+    private final int RINGBUFFERSIZE = 1000;
+    private final AttysRunnable attysRunnable = new AttysRunnable();
     private boolean fatalError = false;
-    private float[][] ringBuffer = null;
-    final private int nMem = 1000;
+    private final float[][] ringBuffer = new float[RINGBUFFERSIZE][NCHANNELS];
+    private final float[] sample = new float[NCHANNELS];
+    private final long[] data = new long[NCHANNELS];
     private int inPtr = 0;
     private int outPtr = 0;
     private boolean isConnected = false;
-    private InputStream mmInStream = null;
-    private OutputStream mmOutStream = null;
     private double timestamp = 0.0; // in secs
-    private BluetoothDevice bluetoothDevice;
-    private byte[] adcMuxRegister = null;
-    private byte[] adcGainRegister = null;
-    private int fullOrPartialData = 1;
+    private final BluetoothDevice bluetoothDevice;
 
     // standard SPP uid
     UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
 
 
-    class AttysRunnable implements Runnable {
+    private class AttysRunnable implements Runnable {
 
-        boolean doRun = true;
+        private boolean doRun = true;
+        private BluetoothSocket mmSocket = null;
+        private Scanner inScanner = null;
+        private InputStream mmInStream = null;
+        private OutputStream mmOutStream = null;
+        private byte[] adcMuxRegister = null;
+        private byte[] adcGainRegister = null;
+
+        private boolean correctTimestampDifference = false;
+        private byte expectedTimestamp = 0;
 
         public void connectToAttys() throws IOException {
 
-            boolean connectionEstablished = false;
+            if (mmSocket != null) {
+                try {
+                    mmSocket.close();
+                } catch (Exception e) {}
+            }
             mmSocket = null;
+            inScanner = null;
+            mmInStream = null;
+            mmOutStream = null;
 
             if (bluetoothDevice == null) {
                 if (Log.isLoggable(TAG, Log.ERROR)) {
@@ -442,9 +497,6 @@ public class AttysComm {
                 }
                 throw new IOException();
             }
-
-            if (bluetoothDevice == null) throw new IOException();
-            // Get a BluetoothSocket to connect with the given BluetoothDevice
 
             if (messageListener != null) {
                 messageListener.haveMessage(MESSAGE_CONNECTING);
@@ -461,7 +513,7 @@ public class AttysComm {
                 } catch (Exception closeExeption) {
                 }
                 mmSocket = null;
-                throw new IOException(ex);
+                throw ex;
             }
 
             if (Log.isLoggable(TAG, Log.VERBOSE)) {
@@ -469,15 +521,45 @@ public class AttysComm {
             }
 
             if (mmSocket != null) {
-                if (mmSocket != null) {
-                    mmSocket.connect();
+                try {
+                    if (mmSocket != null) {
+                        mmSocket.connect();
+                    }
+                } catch (IOException e) {
+                    if (mmSocket != null) {
+                        try {
+                            mmSocket.close();
+                        } catch (Exception ec) {}
+                    }
+                    mmSocket = null;
+                    if (Log.isLoggable(TAG, Log.VERBOSE)) {
+                        Log.v(TAG, "mmSocket.connect() failed");
+                    }
+                    throw e;
                 }
+            }
+            try {
+                mmInStream = mmSocket.getInputStream();
+                mmOutStream = mmSocket.getOutputStream();
+                inScanner = new Scanner(mmInStream);
+            } catch (Exception es) {
+                try {
+                    mmSocket.close();
+                } catch (Exception sc2) {}
+                mmSocket = null;
+                if (Log.isLoggable(TAG, Log.VERBOSE)) {
+                    Log.v(TAG, "couldn't get streams");
+                }
+                throw es;
+            }
+            if (Log.isLoggable(TAG, Log.VERBOSE)) {
+                Log.v(TAG, "Connected to Attys");
             }
         }
 
+
         // brute force stop of the Attys
         // bluetooth is so terrible in full duplex that this is required!
-
         private synchronized void stopADC() throws IOException {
             String s = "\r\n\r\n\r\nx=0\r";
             byte[] bytes = s.getBytes();
@@ -505,10 +587,10 @@ public class AttysComm {
                     if (Log.isLoggable(TAG, Log.ERROR)) {
                         Log.e(TAG, "Could not send 'x=0' (=stop requ) to the Attys:" + e.getMessage());
                     }
-                    throw new IOException(e);
+                    throw e;
                 }
                 if (inScanner == null) return;
-                for (int i = 0; i < 100; i++) {
+                for (int i = 0; (i < 100) && doRun; i++) {
                     if (inScanner != null) {
                         if (inScanner.hasNextLine()) {
                             if (inScanner != null) {
@@ -575,7 +657,7 @@ public class AttysComm {
                 }
                 throw new IOException(e);
             }
-            for (int j = 0; j < 100; j++) {
+            for (int j = 0; (j < 100) && doRun; j++) {
                 if (inScanner != null) {
                     if (inScanner.hasNextLine()) {
                         if (inScanner != null) {
@@ -644,7 +726,17 @@ public class AttysComm {
             sendGainMux(channel, adcGainRegister[channel], mux);
         }
 
+        private synchronized void sendMasterReset() {
+            String s = "\r\n\r\n\r\nm=1\r";
+            byte[] bytes = s.getBytes();
+            try {
+                mmOutStream.write(bytes);
+            } catch (IOException e) {
+            }
+        }
+
         private synchronized void sendInit() throws IOException {
+            if (!doRun) return;
             stopADC();
             // switching to base64 encoding
             sendSyncCommand("d=1");
@@ -660,49 +752,15 @@ public class AttysComm {
 
         /* Call this from the main activity to shutdown the connection */
         public synchronized void cancel() {
-            doRun = false;
-            if (inScanner != null) {
-                inScanner.close();
-            }
-            if (mmInStream != null) {
-                try {
-                    mmInStream.close();
-                } catch (IOException e) {
-                }
-            }
-            if (mmOutStream != null) {
-                try {
-                    mmOutStream.close();
-                } catch (IOException e) {
-                }
-            }
-            if (mmSocket != null) {
-                try {
-                    mmSocket.close();
-                } catch (Exception e) {
-                }
-            }
-            mmSocket = null;
-            isConnected = false;
-            fatalError = false;
-            mmInStream = null;
-            mmOutStream = null;
-            inScanner = null;
-            ringBuffer = null;
             if (Log.isLoggable(TAG, Log.DEBUG)) {
-                Log.d(TAG, "Stopped data acquisition. All streams have been shut down successfully.");
+                Log.d(TAG, "doRun = false");
             }
-        }
-
-        public AttysRunnable(BluetoothDevice _btdev) {
-            bluetoothDevice = _btdev;
+            doRun = false;
         }
 
         public void run() {
 
-            long[] data = new long[NCHANNELS];
-            byte[] raw;
-            float[] sample = new float[NCHANNELS];
+            doRun = true;
 
             adcMuxRegister = new byte[2];
             adcMuxRegister[0] = 0;
@@ -710,34 +768,19 @@ public class AttysComm {
             adcGainRegister = new byte[2];
             adcGainRegister[0] = 0;
             adcGainRegister[1] = 0;
-            boolean[] adcCurrNegOn = new boolean[2];
-            adcCurrNegOn[0] = false;
-            adcCurrNegOn[1] = false;
-            boolean[] adcCurrPosOn = new boolean[2];
-            adcCurrPosOn[0] = false;
-            adcCurrNegOn[1] = false;
 
             int nTrans = 1;
 
             while ((doRun) && (!isConnected)) {
                 try {
                     connectToAttys();
-                    if (mmSocket != null) {
-                        mmInStream = mmSocket.getInputStream();
-                        mmOutStream = mmSocket.getOutputStream();
-                        inScanner = new Scanner(mmInStream);
-                        ringBuffer = new float[nMem][NCHANNELS];
-                        isConnected = true;
-                        if (messageListener != null) {
-                            messageListener.haveMessage(MESSAGE_CONFIGURE);
-                        }
-                        sendInit();
-                    }
-                } catch (IOException e) {
+                    sendInit();
+                    isConnected = true;
+                    } catch (IOException e) {
                     if (Log.isLoggable(TAG, Log.DEBUG)) {
                         Log.d(TAG, "Connect failed. Retrying...");
                     }
-
+                    isConnected = false;
                 }
             }
 
@@ -749,6 +792,10 @@ public class AttysComm {
             if (messageListener != null) {
                 messageListener.haveMessage(MESSAGE_CONNECTED);
             }
+
+            correctTimestampDifference = false;
+            expectedTimestamp = 0;
+
             // Keep listening to the InputStream until an exception occurs
             while (doRun) {
                 try {
@@ -765,7 +812,7 @@ public class AttysComm {
                         if (!oneLine.equals("OK")) {
                             // we have a real sample
                             try {
-                                raw = Base64.decode(oneLine, Base64.DEFAULT);
+                                final byte[] raw = Base64.decode(oneLine, Base64.DEFAULT);
 
                                 for (int i = 0; i < 2; i++) {
                                     long v = (raw[i * 3] & 0xff)
@@ -873,7 +920,7 @@ public class AttysComm {
                                 timestamp = timestamp + 1.0 / getSamplingRateInHz();
                                 sampleNumber++;
                                 inPtr++;
-                                if (inPtr == nMem) {
+                                if (inPtr == RINGBUFFERSIZE) {
                                     inPtr = 0;
                                 }
                             }
@@ -891,16 +938,14 @@ public class AttysComm {
                     break;
                 }
             }
+            isConnected = false;
+            fatalError = false;
+            try {
+                mmSocket.close();
+            } catch (Exception e) {};
+            if (Log.isLoggable(TAG, Log.DEBUG)) {
+                Log.d(TAG, "Data acquisition has been shut down.");
+            }
         }
     }
-
-    private synchronized void sendMasterReset() {
-        String s = "\r\n\r\n\r\nm=1\r";
-        byte[] bytes = s.getBytes();
-        try {
-            mmOutStream.write(bytes);
-        } catch (IOException e) {
-        }
-    }
-
 }

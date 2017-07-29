@@ -28,11 +28,10 @@ Usage
 ------
 
 
-1) Create AttysComm
+1) Create AttysComm:
 
-attysComm = new AttysComm(btAttysDevice);
-
-where btAttysDevice is a bluetooth device which starts with "GN-ATTYS*".
+BluetoothDevice bd = AttysComm.findAttysBtDevice();
+attysComm = new AttysComm(bd);
 
 
 2) Set options:
