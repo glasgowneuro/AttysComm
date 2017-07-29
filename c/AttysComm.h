@@ -131,10 +131,10 @@ public:
 
 	///////////////////////////////////////////////////////////////////
 	// ADC sampling rate and for the whole system
-	const int ADC_RATE_125HZ = 0;
-	const int ADC_RATE_250HZ = 1;
-	const int ADC_RATE_500Hz = 2;
-	const int ADC_DEFAULT_RATE = ADC_RATE_250HZ;
+	static const int ADC_RATE_125HZ = 0;
+	static const int ADC_RATE_250HZ = 1;
+	static const int ADC_RATE_500Hz = 2;
+	static const int ADC_DEFAULT_RATE = ADC_RATE_250HZ;
 	// array of the sampling rates converting the index
 	// to the actual sampling rate
 	const int ADC_SAMPLINGRATE[4] = { 125, 250, 500, 1000 };
@@ -203,10 +203,10 @@ public:
 	// Bias currents for resistance measurement
 	// selectable bias current index numbers for the ADC inputs
 	// used to measure resistance
-	const int ADC_CURRENT_6NA = 0;
-	const int ADC_CURRENT_22NA = 1;
-	const int ADC_CURRENT_6UA = 2;
-	const int ADC_CURRENT_22UA = 3;
+	static const int ADC_CURRENT_6NA = 0;
+	static const int ADC_CURRENT_22NA = 1;
+	static const int ADC_CURRENT_6UA = 2;
+	static const int ADC_CURRENT_22UA = 3;
 	int current_index = 0;
 	int current_mask = 0;
 
@@ -238,12 +238,12 @@ public:
 	//////////////////////////////////////////////////////////////////////////////
 	// selectable different input mux settings
 	// for the ADC channels
-	const int ADC_MUX_NORMAL = 0;
-	const int ADC_MUX_SHORT = 1;
-	const int ADC_MUX_SUPPLY = 3;
-	const int ADC_MUX_TEMPERATURE = 4;
-	const int ADC_MUX_TEST_SIGNAL = 5;
-	const int ADC_MUX_ECG_EINTHOVEN = 6;
+	static const int ADC_MUX_NORMAL = 0;
+	static const int ADC_MUX_SHORT = 1;
+	static const int ADC_MUX_SUPPLY = 3;
+	static const int ADC_MUX_TEMPERATURE = 4;
+	static const int ADC_MUX_TEST_SIGNAL = 5;
+	static const int ADC_MUX_ECG_EINTHOVEN = 6;
 	int adc0_mux_index;
 	int adc1_mux_index;
 
@@ -258,10 +258,10 @@ public:
 
 	///////////////////////////////////////////////////////////////////////////////
 	// accelerometer
-	const int ACCEL_2G = 0;
-	const int ACCEL_4G = 1;
-	const int ACCEL_8G = 2;
-	const int ACCEL_16G = 3;
+	static const int ACCEL_2G = 0;
+	static const int ACCEL_4G = 1;
+	static const int ACCEL_8G = 2;
+	static const int ACCEL_16G = 3;
 	const float oneG = 9.80665F; // m/s^2
 	const float ACCEL_FULL_SCALE[4] = { 2 * oneG, 4 * oneG, 8 * oneG, 16 * oneG }; // m/s^2
 	int accel_full_scale_index;
@@ -315,13 +315,13 @@ public:
 	// sends error/success messages back
 	// for MessageListener
 	// here are the messages:
-	const int MESSAGE_CONNECTED = 0;
-	const int MESSAGE_ERROR = 1;
-	const int MESSAGE_RETRY = 2;
-	const int MESSAGE_CONFIGURE = 3;
-	const int MESSAGE_STARTED_RECORDING = 4;
-	const int MESSAGE_STOPPED_RECORDING = 5;
-	const int MESSAGE_CONNECTING = 6;
+	static const int MESSAGE_CONNECTED = 0;
+	static const int MESSAGE_ERROR = 1;
+	static const int MESSAGE_RETRY = 2;
+	static const int MESSAGE_CONFIGURE = 3;
+	static const int MESSAGE_STARTED_RECORDING = 4;
+	static const int MESSAGE_STOPPED_RECORDING = 5;
+	static const int MESSAGE_CONNECTING = 6;
 
 	////////////////////////////////////////////
 	// connection info
