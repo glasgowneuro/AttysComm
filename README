@@ -3,6 +3,22 @@ AttysCOMM
 
 This is the API for the Attys: http://www.attys.tech
 
+
+It's for C++ and for JAVA
+
+The C++ class is in the root directory and the JAVA class
+in the usual Android subdirectories.
+
+
+C++
+----
+
+See the header files for an introduction.
+
+
+JAVA:
+-----
+
 In general the java class AttysComm is well documented.
 Check out the class itself.
 You find all the constants and function calls there.
