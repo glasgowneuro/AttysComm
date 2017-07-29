@@ -12,8 +12,38 @@ in the usual Android subdirectories.
 
 C++
 ----
+1) scan for Attys
+int ret = attysScan.scan(splash);
 
-See the header files for an introduction.
+2) Check the number of Attys detected
+attysScan.nAttysDevices
+
+3) If devices have been detected they show up as an array
+attysScan.attysComm[0,1,2,etc] points to the AttysComm instances
+
+4) Set the parameters, for example:
+attysScan.attysComm[0]->setAdc_samplingrate_index(AttysComm::ADC_RATE_250HZ);
+
+5) Register a callback (optional)
+attysCallback = new AttysCallback(this);
+attysScan.attysComm[0]->registerCallback(attysCallback);
+
+6) Start data acquisition
+attysScan.attysComm[0]->start();
+
+7) Check if ringbuffer contains data and wait till true
+attysScan.attysComm[n]->hasSampleAvilabale();
+
+8) Get samples from buffer
+float* values = attysScan.attysComm[n]->getSampleFromBuf
+fer();
+
+9) go back to 7)
+
+10) Ending the program:
+attysScan.attysComm[n]->quit();
+attysScan.attysComm[n]->wait();
+
 
 
 JAVA:
