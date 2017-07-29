@@ -6,7 +6,7 @@ This is the API for the Attys: http://www.attys.tech
 
 It's for C++ and for JAVA
 
-The C++ class is in the root directory and the JAVA class
+The C++ class is in the "c" directory and the JAVA class
 in the usual Android subdirectories.
 
 
