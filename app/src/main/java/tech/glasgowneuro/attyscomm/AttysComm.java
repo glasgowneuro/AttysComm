@@ -29,6 +29,7 @@ import android.util.Log;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Locale;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.UUID;
@@ -542,6 +543,7 @@ public class AttysComm {
                 mmInStream = mmSocket.getInputStream();
                 mmOutStream = mmSocket.getOutputStream();
                 inScanner = new Scanner(mmInStream);
+                inScanner.useLocale(Locale.US);
             } catch (Exception es) {
                 try {
                     mmSocket.close();
@@ -805,7 +807,7 @@ public class AttysComm {
                         String oneLine;
                         if (inScanner != null) {
                             oneLine = inScanner.nextLine();
-                            //Log.d(TAG, oneLine);
+                            //Log.v(TAG, oneLine);
                         } else {
                             return;
                         }
