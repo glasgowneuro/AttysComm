@@ -26,9 +26,12 @@ import android.content.Intent;
 import android.util.Base64;
 import android.util.Log;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.util.Locale;
 import java.util.Scanner;
 import java.util.Set;
@@ -434,7 +437,7 @@ public class AttysComm {
     }
 
     public void start() {
-        if ( bluetoothDevice != null ) {
+        if (bluetoothDevice != null) {
             new Thread(attysRunnable).start();
         }
     }
@@ -471,7 +474,7 @@ public class AttysComm {
 
         private boolean doRun = true;
         private BluetoothSocket mmSocket = null;
-        private Scanner inScanner = null;
+        private BufferedReader bufferedReader = null;
         private InputStream mmInStream = null;
         private OutputStream mmOutStream = null;
         private byte[] adcMuxRegister = null;
@@ -485,10 +488,11 @@ public class AttysComm {
             if (mmSocket != null) {
                 try {
                     mmSocket.close();
-                } catch (Exception e) {}
+                } catch (Exception e) {
+                }
             }
             mmSocket = null;
-            inScanner = null;
+            bufferedReader = null;
             mmInStream = null;
             mmOutStream = null;
 
@@ -530,7 +534,8 @@ public class AttysComm {
                     if (mmSocket != null) {
                         try {
                             mmSocket.close();
-                        } catch (Exception ec) {}
+                        } catch (Exception ec) {
+                        }
                     }
                     mmSocket = null;
                     if (Log.isLoggable(TAG, Log.VERBOSE)) {
@@ -542,12 +547,12 @@ public class AttysComm {
             try {
                 mmInStream = mmSocket.getInputStream();
                 mmOutStream = mmSocket.getOutputStream();
-                inScanner = new Scanner(mmInStream);
-                inScanner.useLocale(Locale.US);
+                bufferedReader = new BufferedReader(new InputStreamReader(mmInStream,"US-ASCII"));
             } catch (Exception es) {
                 try {
                     mmSocket.close();
-                } catch (Exception sc2) {}
+                } catch (Exception sc2) {
+                }
                 mmSocket = null;
                 if (Log.isLoggable(TAG, Log.VERBOSE)) {
                     Log.v(TAG, "couldn't get streams");
@@ -591,21 +596,17 @@ public class AttysComm {
                     }
                     throw e;
                 }
-                if (inScanner == null) return;
+                if (bufferedReader == null) return;
                 for (int i = 0; (i < 100) && doRun; i++) {
-                    if (inScanner != null) {
-                        if (inScanner.hasNextLine()) {
-                            if (inScanner != null) {
-                                String l = inScanner.nextLine();
-                                if (l.equals("OK")) {
-                                    if (Log.isLoggable(TAG, Log.DEBUG)) {
-                                        Log.d(TAG, "ADC stopped. Now in command mode.");
-                                    }
-                                    return;
-                                } else {
-                                    Thread.yield();
-                                }
+                    if (bufferedReader != null) {
+                        String l = bufferedReader.readLine();
+                        if (l.equals("OK")) {
+                            if (Log.isLoggable(TAG, Log.DEBUG)) {
+                                Log.d(TAG, "ADC stopped. Now in command mode.");
                             }
+                            return;
+                        } else {
+                            Thread.yield();
                         }
                     }
                 }
@@ -660,21 +661,17 @@ public class AttysComm {
                 throw new IOException(e);
             }
             for (int j = 0; (j < 100) && doRun; j++) {
-                if (inScanner != null) {
-                    if (inScanner.hasNextLine()) {
-                        if (inScanner != null) {
-                            String l = inScanner.nextLine();
-                            if (l.equals("OK")) {
-                                if (Log.isLoggable(TAG, Log.DEBUG)) {
-                                    Log.d(TAG, "Sent successfully '" + s + "' to the Attys.");
-                                }
-                                return;
-                            } else {
-                                try {
-                                    Thread.sleep(10);
-                                } catch (InterruptedException e) {
-                                }
-                            }
+                if (bufferedReader != null) {
+                    String l = bufferedReader.readLine();
+                    if (l.equals("OK")) {
+                        if (Log.isLoggable(TAG, Log.DEBUG)) {
+                            Log.d(TAG, "Sent successfully '" + s + "' to the Attys.");
+                        }
+                        return;
+                    } else {
+                        try {
+                            Thread.sleep(10);
+                        } catch (InterruptedException e) {
                         }
                     }
                 }
@@ -778,7 +775,7 @@ public class AttysComm {
                     connectToAttys();
                     sendInit();
                     isConnected = true;
-                    } catch (IOException e) {
+                } catch (IOException e) {
                     if (Log.isLoggable(TAG, Log.DEBUG)) {
                         Log.d(TAG, "Connect failed. Retrying...");
                     }
@@ -801,136 +798,132 @@ public class AttysComm {
             // Keep listening to the InputStream until an exception occurs
             while (doRun) {
                 try {
-                    // Read from the InputStream
-                    if ((inScanner != null) && inScanner.hasNextLine()) {
-                        // get a line from the Attys
-                        String oneLine;
-                        if (inScanner != null) {
-                            oneLine = inScanner.nextLine();
-                            //Log.v(TAG, oneLine);
-                        } else {
-                            return;
-                        }
-                        if (!oneLine.equals("OK")) {
-                            // we have a real sample
-                            try {
-                                final byte[] raw = Base64.decode(oneLine, Base64.DEFAULT);
+                    String oneLine;
+                    if (bufferedReader != null) {
+                        oneLine = bufferedReader.readLine();
+                        // Log.v(TAG, oneLine);
+                    } else {
+                        return;
+                    }
+                    if (!oneLine.equals("OK")) {
+                        // we have a real sample
+                        try {
+                            final byte[] raw = Base64.decode(oneLine, Base64.DEFAULT);
 
-                                for (int i = 0; i < 2; i++) {
-                                    long v = (raw[i * 3] & 0xff)
-                                            | ((raw[i * 3 + 1] & 0xff) << 8)
-                                            | ((raw[i * 3 + 2] & 0xff) << 16);
-                                    data[INDEX_Analogue_channel_1 + i] = v;
+                            for (int i = 0; i < 2; i++) {
+                                long v = (raw[i * 3] & 0xff)
+                                        | ((raw[i * 3 + 1] & 0xff) << 8)
+                                        | ((raw[i * 3 + 2] & 0xff) << 16);
+                                data[INDEX_Analogue_channel_1 + i] = v;
+                            }
+
+                            if (fullOrPartialData == FULL_DATA) {
+                                for (int i = 0; i < 6; i++) {
+                                    long v = (raw[8 + i * 2] & 0xff)
+                                            | ((raw[8 + i * 2 + 1] & 0xff) << 8);
+                                    data[i] = v;
                                 }
+                            }
 
-                                if (fullOrPartialData == FULL_DATA) {
-                                    for (int i = 0; i < 6; i++) {
-                                        long v = (raw[8 + i * 2] & 0xff)
-                                                | ((raw[8 + i * 2 + 1] & 0xff) << 8);
-                                        data[i] = v;
-                                    }
-                                }
+                            /**
+                             Log.d(TAG,String.format("%d,%d,%d, %d,%d,%d, %d,%d",
+                             data[0],data[1],data[2],
+                             data[3],data[4],data[5],
+                             data[6],data[7]));
+                             **/
 
-                                /**
-                                 Log.d(TAG,String.format("%d,%d,%d, %d,%d,%d, %d,%d",
-                                 data[0],data[1],data[2],
-                                 data[3],data[4],data[5],
-                                 data[6],data[7]));
-                                 **/
-
-                                // check that the timestamp is the expected one
-                                byte ts = 0;
-                                nTrans = 1;
-                                if (raw.length > 7) {
-                                    // Log.d(TAG,"tbcorr");
-                                    ts = raw[7];
-                                    if ((ts - expectedTimestamp) > 0) {
-                                        if (correctTimestampDifference) {
-                                            nTrans = 1 + (ts - expectedTimestamp);
-                                            if (Log.isLoggable(TAG, Log.DEBUG)) {
-                                                Log.d(TAG, String.format("Timestamp=%s,expected=%d",
-                                                        ts, expectedTimestamp));
-                                            }
-                                        } else {
-                                            correctTimestampDifference = true;
+                            // check that the timestamp is the expected one
+                            byte ts = 0;
+                            nTrans = 1;
+                            if (raw.length > 7) {
+                                // Log.d(TAG,"tbcorr");
+                                ts = raw[7];
+                                if ((ts - expectedTimestamp) > 0) {
+                                    if (correctTimestampDifference) {
+                                        nTrans = 1 + (ts - expectedTimestamp);
+                                        if (Log.isLoggable(TAG, Log.DEBUG)) {
+                                            Log.d(TAG, String.format("Timestamp=%s,expected=%d",
+                                                    ts, expectedTimestamp));
                                         }
+                                    } else {
+                                        correctTimestampDifference = true;
                                     }
                                 }
-                                // update timestamp
-                                expectedTimestamp = ++ts;
-
-                            } catch (Exception e) {
-                                // this is triggered if the base64 is too short or any data is too short
-                                // this leads to data processed from the previous sample instead
-                                if (Log.isLoggable(TAG, Log.DEBUG)) {
-                                    Log.d(TAG, "reception error: " + oneLine, e);
-                                }
-                                expectedTimestamp++;
                             }
+                            // update timestamp
+                            expectedTimestamp = ++ts;
 
-                            // acceleration
-                            for (int i = AttysComm.INDEX_Acceleration_X;
-                                 i <= AttysComm.INDEX_Acceleration_Z; i++) {
-                                float norm = 0x8000;
-                                try {
-                                    sample[i] = ((float) data[i] - norm) / norm *
-                                            getAccelFullScaleRange();
-                                } catch (Exception e) {
-                                    if (Log.isLoggable(TAG, Log.DEBUG)) {
-                                        Log.d(TAG, "Acc conv err");
-                                    }
-                                    sample[i] = 0;
-                                }
-                            }
-
-                            // magnetometer
-                            for (int i = AttysComm.INDEX_Magnetic_field_X;
-                                 i <= AttysComm.INDEX_Magnetic_field_Z; i++) {
-                                float norm = 0x8000;
-                                try {
-                                    sample[i] = ((float) data[i] - norm) / norm *
-                                            MAG_FULL_SCALE;
-                                    //Log.d(TAG,"i="+i+","+sample[i]);
-                                } catch (Exception e) {
-                                    if (Log.isLoggable(TAG, Log.DEBUG)) {
-                                        Log.d(TAG, "Mag conv err");
-                                    }
-                                    sample[i] = 0;
-                                }
-                            }
-
-                            for (int i = AttysComm.INDEX_Analogue_channel_1;
-                                 i <= AttysComm.INDEX_Analogue_channel_2; i++) {
-                                float norm = 0x800000;
-                                try {
-                                    sample[i] = ((float) data[i] - norm) / norm *
-                                            ADC_REF / ADC_GAIN_FACTOR[adcGainRegister[i
-                                            - AttysComm.INDEX_Analogue_channel_1]];
-                                } catch (Exception e) {
-                                    sample[i] = 0;
-                                }
-                            }
-
-                            // in case a sample has been lost
-                            for (int j = 0; j < nTrans; j++) {
-                                if (dataListener != null) {
-                                    dataListener.gotData(sampleNumber, sample);
-                                }
-                                if (ringBuffer != null) {
-                                    System.arraycopy(sample, 0, ringBuffer[inPtr], 0, sample.length);
-                                }
-                                timestamp = timestamp + 1.0 / getSamplingRateInHz();
-                                sampleNumber++;
-                                inPtr++;
-                                if (inPtr == RINGBUFFERSIZE) {
-                                    inPtr = 0;
-                                }
-                            }
-
-                        } else {
+                        } catch (Exception e) {
+                            // this is triggered if the base64 is too short or any data is too short
+                            // this leads to data processed from the previous sample instead
                             if (Log.isLoggable(TAG, Log.DEBUG)) {
-                                Log.d(TAG, "OK caught from the Attys");
+                                Log.d(TAG, "reception error: " + oneLine, e);
                             }
+                            expectedTimestamp++;
+                        }
+
+                        // acceleration
+                        for (int i = AttysComm.INDEX_Acceleration_X;
+                             i <= AttysComm.INDEX_Acceleration_Z; i++) {
+                            float norm = 0x8000;
+                            try {
+                                sample[i] = ((float) data[i] - norm) / norm *
+                                        getAccelFullScaleRange();
+                            } catch (Exception e) {
+                                if (Log.isLoggable(TAG, Log.DEBUG)) {
+                                    Log.d(TAG, "Acc conv err");
+                                }
+                                sample[i] = 0;
+                            }
+                        }
+
+                        // magnetometer
+                        for (int i = AttysComm.INDEX_Magnetic_field_X;
+                             i <= AttysComm.INDEX_Magnetic_field_Z; i++) {
+                            float norm = 0x8000;
+                            try {
+                                sample[i] = ((float) data[i] - norm) / norm *
+                                        MAG_FULL_SCALE;
+                                //Log.d(TAG,"i="+i+","+sample[i]);
+                            } catch (Exception e) {
+                                if (Log.isLoggable(TAG, Log.DEBUG)) {
+                                    Log.d(TAG, "Mag conv err");
+                                }
+                                sample[i] = 0;
+                            }
+                        }
+
+                        for (int i = AttysComm.INDEX_Analogue_channel_1;
+                             i <= AttysComm.INDEX_Analogue_channel_2; i++) {
+                            float norm = 0x800000;
+                            try {
+                                sample[i] = ((float) data[i] - norm) / norm *
+                                        ADC_REF / ADC_GAIN_FACTOR[adcGainRegister[i
+                                        - AttysComm.INDEX_Analogue_channel_1]];
+                            } catch (Exception e) {
+                                sample[i] = 0;
+                            }
+                        }
+
+                        // in case a sample has been lost
+                        for (int j = 0; j < nTrans; j++) {
+                            if (dataListener != null) {
+                                dataListener.gotData(sampleNumber, sample);
+                            }
+                            if (ringBuffer != null) {
+                                System.arraycopy(sample, 0, ringBuffer[inPtr], 0, sample.length);
+                            }
+                            timestamp = timestamp + 1.0 / getSamplingRateInHz();
+                            sampleNumber++;
+                            inPtr++;
+                            if (inPtr == RINGBUFFERSIZE) {
+                                inPtr = 0;
+                            }
+                        }
+
+                    } else {
+                        if (Log.isLoggable(TAG, Log.DEBUG)) {
+                            Log.d(TAG, "OK caught from the Attys");
                         }
                     }
                 } catch (Exception e) {
@@ -944,7 +937,9 @@ public class AttysComm {
             fatalError = false;
             try {
                 mmSocket.close();
-            } catch (Exception e) {};
+            } catch (Exception e) {
+            }
+            ;
             if (Log.isLoggable(TAG, Log.DEBUG)) {
                 Log.d(TAG, "Data acquisition has been shut down.");
             }
