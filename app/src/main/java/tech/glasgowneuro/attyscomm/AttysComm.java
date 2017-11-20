@@ -841,8 +841,8 @@ public class AttysComm {
                                 if ((ts - expectedTimestamp) > 0) {
                                     if (correctTimestampDifference) {
                                         nTrans = 1 + (ts - expectedTimestamp);
-                                        if (Log.isLoggable(TAG, Log.DEBUG)) {
-                                            Log.d(TAG, String.format("Timestamp=%s,expected=%d",
+                                        if (Log.isLoggable(TAG, Log.WARN)) {
+                                            Log.w(TAG, String.format("Timestamp=%s,expected=%d",
                                                     ts, expectedTimestamp));
                                         }
                                     } else {
@@ -856,8 +856,8 @@ public class AttysComm {
                         } catch (Exception e) {
                             // this is triggered if the base64 is too short or any data is too short
                             // this leads to data processed from the previous sample instead
-                            if (Log.isLoggable(TAG, Log.DEBUG)) {
-                                Log.d(TAG, "reception error: " + oneLine, e);
+                            if (Log.isLoggable(TAG, Log.WARN)) {
+                                Log.w(TAG, "reception error: " + oneLine, e);
                             }
                             expectedTimestamp++;
                         }
