@@ -5,8 +5,17 @@
 	#include "attyscomm/AttysThread.h"
 	#include "attyscomm/base64.h"
 	#include "AttysComm.h"
-	#include "AttysScan.h"	
+	#include "AttysScan.h"
 %}
+
+%typemap(out) sample_p {
+  int i;
+  $result = PyList_New(8);
+  for (i = 0; i < 8; i++) {
+    PyObject *o = PyFloat_FromDouble((double) $1[i]);
+    PyList_SetItem($result,i,o);
+  }
+}
+
 %include "AttysComm.h"
 %include "AttysScan.h"
-

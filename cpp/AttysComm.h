@@ -70,6 +70,9 @@ struct AttysCommListener {
 };
 
 
+// type which represents the samples
+typedef float* sample_p;
+
 
 class AttysComm : public AttysThread
 {
@@ -339,7 +342,7 @@ public:
 
 	/////////////////////////////////////////////////
 	// ringbuffer keeping data for chunk-wise plotting
-	float* getSampleFromBuffer();
+	sample_p getSampleFromBuffer();
 
 	int hasSampleAvilabale() {
 		return (inPtr != outPtr);
