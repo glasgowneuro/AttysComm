@@ -61,6 +61,17 @@ attysScan.attysComm[n]->quit();
 attysScan.attysComm[n]->wait();
 
 
+Python
+------
+
+cmake generates also a python wrapper which are the files:
+pyattyscomm.py, _pyattyscomm.so
+
+The functions are identical to the C++ functions above.
+The file readdata_demo.py demonstrates how to read continously
+data from the attys.
+
+
 
 JAVA:
 -----
