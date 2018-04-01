@@ -4,16 +4,32 @@ AttysCOMM
 This is the API for the Attys: http://www.attys.tech
 
 
-It's for C++ and for JAVA
+It's for C++ (with Python wrapper) and JAVA
 
-The C++ class is in the "c" directory and the JAVA class
+The C++ class is in the "cpp" directory and the JAVA class
 in the usual Android subdirectories.
 
 
 C++
 ----
+Installation/compilation is with cmake under Linux / Mac:
+- cmake .
+- make
+- sudo make install
+
+This will generate: a dynamic library libattyscomm.so, a static
+one called libattyscomm_static.a and a python module called
+pyattyscomm which contains exactly the class members of AttysComm
+and AttysScan.
+
+Installation under Windows:
+- cmake -G "Visual Studio 15 2017 Win64" .
+and then start Visual C++ and compile it. Just use the static
+library.
+
+
 1) scan for Attys
-int ret = attysScan.scan(splash);
+int ret = attysScan.scan();
 
 2) Check the number of Attys detected
 attysScan.nAttysDevices
