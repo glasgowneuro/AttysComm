@@ -8,10 +8,9 @@ AttysScan attysScan;
 /**
  * Scans for Attys Devices
  * Fills up the variables
- * Parameter splash is an optional splash screen
  * Returns zero on success
  **/
-int AttysScan::scan(QSplashScreen* splash, int maxAttysDevs) {
+int AttysScan::scan(int maxAttysDevs) {
 	dev = new SOCKET[maxAttysDevs];
 	attysName = new char*[maxAttysDevs];
 	attysComm = new AttysComm*[maxAttysDevs];
@@ -36,24 +35,30 @@ int AttysScan::scan(QSplashScreen* splash, int maxAttysDevs) {
 	struct sockaddr_rc saddr;
 	memset(&saddr,0,sizeof(struct sockaddr_rc));
 
-	fprintf(stderr,"Searching for Attys devices.\n");
-	if (splash) {
-		splash->showMessage("Searching for\nAttys devices");
+	if (debug) {
+		fprintf(stderr,"Scanning for Attys devices.\n");
+	}
+	if (statusCallback) {
+		statusCallback->message(SCAN_SEARCHING,"Searching for\nAttys devices");
 	}
 	
 	dev_id = hci_get_route(NULL);
 	if (dev_id < 0) {
-		fprintf(stderr,"No bluetooth device available.\n");
-		if (splash) {
-			splash->showMessage("No bluetooth\ndevices available");
+		if (debug) {
+			fprintf(stderr,"No bluetooth devices paired or bluetooth off. Err code = %d\n",dev_id);
+		}
+		if (statusCallback) {
+			statusCallback->message(SCAN_NODEV,"No bluetooth\ndevices available");
 		}
 		return dev_id;
 	}
 	sock = hci_open_dev( dev_id );
 	if (sock < 0) {
-		perror("opening socket");
-		if (splash) {
-			splash->showMessage("Error opening socket");
+		if (debug) {
+			fprintf(stderr,"Socket open returned error code %d.\n",sock);
+		}
+		if (statusCallback) {
+			statusCallback->message(SCAN_SOCKETERR,"Error opening socket");
 		}
 		return sock;
 	}
@@ -107,6 +112,9 @@ int AttysScan::scan(QSplashScreen* splash, int maxAttysDevs) {
 					fprintf(stderr,"Connect failed. Error code = %d. ",status);
 					if (status == -1) {
 						fprintf(stderr,"Permission denied. Please pair the Attys with your bluetooth adapter.\n");
+						statusCallback->message(SCAN_CONNECTERR,"Permission denied. Attys not paired with this computer.");
+					} else {
+						statusCallback->message(SCAN_CONNECTERR,"Connect failed");
 					}
 					::close(s);
 					fprintf(stderr,"\n");
@@ -139,15 +147,15 @@ int AttysScan::scan(QSplashScreen* splash, int maxAttysDevs) {
 	if (0 != iRet) {
 		if (WSAGetLastError() != WSASERVICE_NOT_FOUND) {
 			_RPT0(0,"WSALookupServiceBegin failed\n");
-			if (splash) {
-				splash->showMessage("Internal windows\nbluetooth driver problem:\nWSALookupServiceBegin failed\n");
+			if (statusCallback) {
+				statusCallback->message(SCAN_SOCKETERR,"Internal windows\nbluetooth driver problem:\nWSALookupServiceBegin failed\n");
 			}
 			return iRet;
 		}
 		else {
 			_RPT0(0,"No bluetooth devices found\n");
-			if (splash) {
-				splash->showMessage("No bluetooth devices found.\nHave you paired the Attys?\nIs bluetooth switched on?");
+			if (statusCallback) {
+				statusCallback->message(SCAN_NODEV,"No bluetooth devices found.\nHave you paired the Attys?\nIs bluetooth switched on?");
 			}
 			return -1;
 		}
@@ -169,8 +177,8 @@ int AttysScan::scan(QSplashScreen* splash, int maxAttysDevs) {
 
 			char tmp[256];
 			sprintf(tmp, "Connecting to\nAttys #%d:\n%S", nAttysDevices,name);
-			if (splash) {
-				splash->showMessage(tmp);
+			if (statusCallback) {
+				statusCallback->message(SCAN_CONNECTING,tmp);
 			}
 
 			for (int i = 0; i < 5; i++) {
@@ -194,7 +202,6 @@ int AttysScan::scan(QSplashScreen* splash, int maxAttysDevs) {
 				int status = ::connect(s, (struct sockaddr *)btAddr, btAddrLen);
 
 				if (status == 0) {
-
 					attysComm[nAttysDevices] = new AttysComm(s);
 					assert(attysComm[nAttysDevices] != nullptr);
 					sprintf(attysName[nAttysDevices], "#%d: %S", nAttysDevices, name);
@@ -203,6 +210,7 @@ int AttysScan::scan(QSplashScreen* splash, int maxAttysDevs) {
 				}
 				else {
 					_RPT0(0,"Connect failed\n");
+					statusCallback->message(SCAN_CONNECTERR,"Connect failed");
 					shutdown(s, SD_BOTH);
 					closesocket(s);
 				}
@@ -226,6 +234,5 @@ int AttysScan::scan(QSplashScreen* splash, int maxAttysDevs) {
 AttysScan::~AttysScan() {
 	for (int devNo = 0; devNo < nAttysDevices; devNo++) {
 		attysComm[devNo]->quit();
-		attysComm[devNo]->wait();
 	}
 }

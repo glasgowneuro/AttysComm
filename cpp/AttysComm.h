@@ -12,7 +12,7 @@ class AttysComm;
  *    It finds all paired Attys and creates separate AttysComm classes
  * 2) These classes are in in the array attysComm in AttysScan and
  *    the number of them in nAttysDevices.
- * 3) All attysComm are QThreads so just start the data acquisition
+ * 3) All attysComm are Threads so just start the data acquisition
  *    with start(), for example attysComm[0]->start() for the 1st Attys
  * 4) Get the data either via the RingBuffer functions or register a
  *    callback to get the data as it arrives.
@@ -37,12 +37,12 @@ class AttysComm;
 #include <sys/socket.h>
 #include <unistd.h>
 #define Sleep(u) usleep((u*1000))
-#ifdef QT_DEBUG
-#define _RPT0(u,v) fprintf(stderr,v)
-#define _RPT1(u,v,w) fprintf(stderr,v,w)
-#else
+#ifdef NDEBUG
 #define _RPT0(u,v)
 #define _RPT1(u,v,w)
+#else
+#define _RPT0(u,v) fprintf(stderr,v)
+#define _RPT1(u,v,w) fprintf(stderr,v,w)
 #endif
 #define OutputDebugStringW(s)
 #elif _WIN32
@@ -54,10 +54,8 @@ class AttysComm;
 #else
 #endif
 
-#include <stdio.h>
-#include <QThread>
-#include <qsplashscreen.h>
-#include "base64.h"
+#include "attyscomm/AttysThread.h"
+#include "attyscomm/base64.h"
 
 #pragma once
 
@@ -67,8 +65,13 @@ class AttysComm;
 // and then connects to the Attys
 
 
+struct AttysCommListener {
+	virtual void hasSample(float,float *) = 0;
+};
 
-class AttysComm : public QThread
+
+
+class AttysComm : public AttysThread
 {
 public:
 	/////////////////////////////////////////////////
@@ -348,12 +351,8 @@ public:
 	// whenever a sample has arrived.
         // Implemented as an interface
 	
-	struct CallbackInterface {
-		virtual void hasSample(float,float *) = 0;
-	};
-
 	// Register a callback
-	void registerCallback(CallbackInterface* f) {
+	void registerCallback(AttysCommListener* f) {
 		callbackInterface = f;
 	}
 
@@ -363,7 +362,7 @@ public:
 	}
 
 private:
-	CallbackInterface* callbackInterface = NULL;
+	AttysCommListener* callbackInterface = NULL;
 
 	
 private:
