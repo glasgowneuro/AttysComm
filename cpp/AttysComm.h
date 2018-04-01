@@ -51,6 +51,7 @@ class AttysComm;
 #include <winsock2.h>
 #include <ws2bth.h>
 #include <BluetoothAPIs.h>
+#include <string>
 #else
 #endif
 
