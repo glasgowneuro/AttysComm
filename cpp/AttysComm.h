@@ -86,10 +86,10 @@ public:
 	// Constructor: takes the bluetooth device as an argument
 	// it then tries to connect to the Attys
 	AttysComm(SOCKET _btsocket);
-	
+
 	~AttysComm();
-	
-	
+
+
 public:
 
 	static const int NCHANNELS = 8;
@@ -264,6 +264,13 @@ public:
 
 	void setAdc1_mux_index(int idx) {
 		adc1_mux_index = idx;
+	}
+
+
+	///////////////////////////////////////////////////////////////////////////////
+	// Temperature
+	static float phys2temperature(float volt) {
+		return (float)((volt - 145300E-6) / 490E-6 + 25);
 	}
 
 
