@@ -210,7 +210,9 @@ int AttysScan::scan(int maxAttysDevs) {
 				}
 				else {
 					_RPT0(0,"Connect failed\n");
-					statusCallback->message(SCAN_CONNECTERR,"Connect failed");
+					if (statusCallback) {
+						statusCallback->message(SCAN_CONNECTERR, "Connect failed");
+					}
 					shutdown(s, SD_BOTH);
 					closesocket(s);
 				}
