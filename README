@@ -1,12 +1,10 @@
 AttysCOMM
 ---------
 
-This is the API for the Attys: http://www.attys.tech
+This is the C++ (Python) and JAVA API for the Attys: http://www.attys.tech
 
 
-It's for C++ (with Python wrapper) and JAVA
-
-The C++ class is in the "cpp" directory and the JAVA class
+The C++ class with its Python wrapper is in the "cpp" directory and the JAVA class
 in the usual Android subdirectories.
 
 

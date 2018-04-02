@@ -46,6 +46,10 @@ class AttysComm;
 #endif
 #define OutputDebugStringW(s)
 #elif _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define _WINSOCKAPI_
+#define _CRT_SECURE_NO_WARNINGS
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <winsock2.h>
