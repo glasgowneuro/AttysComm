@@ -17,14 +17,14 @@ set(PRIVATEHEADERS
   attyscomm/base64.h
   attyscomm/AttysThread.h)
 
+if(UNIX)
+
 add_library(attyscomm
   SHARED
   ${LIBSRC}
   )
   
-if(WIN32)
 target_link_libraries(attyscomm ws2_32)
-endif(WIN32)
 
 target_include_directories(attyscomm PRIVATE attyscomm)
 
@@ -40,6 +40,9 @@ install(TARGETS attyscomm
   PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
   PRIVATE_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/attyscomm)
 
+endif(UNIX)
+
+  
 add_library(attyscomm_static
   STATIC
   ${LIBSRC}
