@@ -24,8 +24,6 @@ add_library(attyscomm
   ${LIBSRC}
   )
   
-target_link_libraries(attyscomm ws2_32)
-
 target_include_directories(attyscomm PRIVATE attyscomm)
 
 set_target_properties(attyscomm PROPERTIES

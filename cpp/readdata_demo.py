@@ -1,5 +1,6 @@
 import pyattyscomm
 s = pyattyscomm.AttysScan()
+s.debug = 1
 s.scan()
 c = s.getAttysComm(0)
 c.start()

@@ -61,15 +61,24 @@ attysScan.attysComm[n]->quit();
 attysScan.attysComm[n]->wait();
 
 
-Python
-------
+Python/SWIG (Linux)
+-------------------
 
-cmake generates also a python wrapper which are the files:
+Build:
+cmake/make generates also a python wrapper which are the files:
 pyattyscomm.py, _pyattyscomm.so
 
-The functions are identical to the C++ functions above.
-The file readdata_demo.py demonstrates how to read continously
-data from the attys.
+Installation: 
+Run "python3 setup.py install" or point your program to the cpp
+subdirectory so that it's able to load the library files.
+
+Usage:
+The functions are identical to the C++ headers above.
+
+Demo:
+The file "readdata_demo.py" demonstrates how to read continously
+data from the attys. The library takes care of the buffering.
+The python program gets the samples whenever it wants it.
 
 
 
