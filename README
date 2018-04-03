@@ -1,11 +1,11 @@
 AttysCOMM
 ---------
 
-This is the C++ (Python) and JAVA API for the Attys: http://www.attys.tech
+This is the C++ and JAVA API for the Attys: http://www.attys.tech
 
 
-The C++ class with its Python wrapper is in the "cpp" directory and the JAVA class
-in the usual Android subdirectories.
+The C++ class (with a Python wrapper) is in the "cpp" directory and
+the JAVA class in the usual Android subdirectories.
 
 
 C++
@@ -135,7 +135,29 @@ attysComm.start();
 
 
 
-Generally check out the public section of the class AttysComm for more info.
+Python wrapper (Linux)
+----------------------
+
+If SWIG is installed then a binary Python module is generated:
+
+- pyattyscomm.py
+- _pyattyscomm.so
+
+...which has the same classes as the C++ implementation.
+
+Copy these files into your project or install them with "setup.py install".
+
+There is a demo program which shows you how to read data with this
+module:
+
+readdata_demo.py
+
+This works so far only under Linux. Under Windows SWIG creates
+a C++ wrapper for the module which won't compile with VS++. Future
+version of SWIG will have probably fixed it.
+
+
+
 
 Enjoy!
 
