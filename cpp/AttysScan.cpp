@@ -35,18 +35,14 @@ int AttysScan::scan(int maxAttysDevs) {
 	struct sockaddr_rc saddr;
 	memset(&saddr,0,sizeof(struct sockaddr_rc));
 
-	if (debug) {
-		fprintf(stderr,"Scanning for Attys devices.\n");
-	}
+	_RPT0(0, "Searching for Attys devices.\n");
 	if (statusCallback) {
 		statusCallback->message(SCAN_SEARCHING,"Searching for\nAttys devices");
 	}
 	
 	dev_id = hci_get_route(NULL);
 	if (dev_id < 0) {
-		if (debug) {
-			fprintf(stderr,"No bluetooth devices paired or bluetooth off. Err code = %d\n",dev_id);
-		}
+		_RPT1(0,"No bluetooth devices paired or bluetooth off. Err code = %d\n",dev_id);
 		if (statusCallback) {
 			statusCallback->message(SCAN_NODEV,"No bluetooth\ndevices available");
 		}
@@ -54,9 +50,7 @@ int AttysScan::scan(int maxAttysDevs) {
 	}
 	sock = hci_open_dev( dev_id );
 	if (sock < 0) {
-		if (debug) {
-			fprintf(stderr,"Socket open returned error code %d.\n",sock);
-		}
+		_RPT1(0,"Socket open returned error code: %d.\n",sock);
 		if (statusCallback) {
 			statusCallback->message(SCAN_SOCKETERR,"Error opening socket");
 		}

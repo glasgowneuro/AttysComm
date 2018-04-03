@@ -88,9 +88,6 @@ public:
 		return attysComm[i];
 	}
 
-	// debug output
-	int debug = 0;
-
 };
 
 
