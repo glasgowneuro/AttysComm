@@ -106,9 +106,13 @@ int AttysScan::scan(int maxAttysDevs) {
 					fprintf(stderr,"Connect failed. Error code = %d. ",status);
 					if (status == -1) {
 						fprintf(stderr,"Permission denied. Please pair the Attys with your bluetooth adapter.\n");
-						statusCallback->message(SCAN_CONNECTERR,"Permission denied. Attys not paired with this computer.");
+						if (statusCallback) {
+							statusCallback->message(SCAN_CONNECTERR,"Permission denied. Attys not paired with this computer.");
+						}
 					} else {
-						statusCallback->message(SCAN_CONNECTERR,"Connect failed");
+						if (statusCallback) {
+							statusCallback->message(SCAN_CONNECTERR,"Connect failed");
+						}
 					}
 					::close(s);
 					fprintf(stderr,"\n");
