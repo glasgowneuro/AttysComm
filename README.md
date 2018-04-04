@@ -31,6 +31,13 @@ cmake -G "Visual Studio 15 2017 Win64" .
 ```
 and then start Visual C++ and compile it.
 
+### Usage
+
+A small demo program is in the `demo` directory which scans
+for an Attys and then prints the incoming data to stdout.
+Type `cmake .`, `make` and then `./attysdemo` to run it.
+
+Here is a step by guide how to code it:
 
 1. scan for Attys
 ```
