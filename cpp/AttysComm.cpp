@@ -94,7 +94,7 @@ void AttysComm::sendSyncCommand(const char *message, int waitForOK) {
 		}
 		for (int i = 0; i < 100; i++) {
 			char linebuffer[8192];
-			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			ret = recv(btsocket, linebuffer, 8191, 0);
 			if (ret < 0) {
 				if (attysCommError) {
