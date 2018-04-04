@@ -2,6 +2,8 @@
 
 #include <assert.h>
 
+#include <chrono>
+#include <thread>
 
 AttysComm::AttysComm(SOCKET _btsocket)
 {
@@ -75,21 +77,33 @@ float* AttysComm::getSampleFromBuffer() {
 
 
 void AttysComm::sendSyncCommand(const char *message, int waitForOK) {
-	// Put the socket in non-blocking mode:
 	char cr[] = "\n";
-	_RPT1(0,"Sending: %s",message);
-	send(btsocket, message, (int)strlen(message), 0);
-	if (!waitForOK) {
-		return;
-	}
+	int ret = 0;
+	// 10 attempts
 	for (int k = 0; k < 10; k++) {
-		send(btsocket, message, (int)strlen(message), 0);
+		_RPT1(0,"Sending: %s",message);
+		ret = send(btsocket, message, (int)strlen(message), 0);
+		if (ret < 0) {
+			if (attysCommError) {
+				attysCommError->hasError(errno,"message transmit error");	
+			}
+		}
 		send(btsocket, cr, (int)strlen(cr), 0);
+		if (!waitForOK) {
+			return;
+		}
 		for (int i = 0; i < 100; i++) {
-			Sleep(1);
 			char linebuffer[8192];
-			int ret = recv(btsocket, linebuffer, 8191, 0);
-			if (ret > 1) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			ret = recv(btsocket, linebuffer, 8191, 0);
+			if (ret < 0) {
+				if (attysCommError) {
+					attysCommError->hasError(errno,"could receive OK");	
+				}
+			}
+			if ((ret > 2) && (ret < 5)) {
+				linebuffer[ret] = 0;
+				//fprintf(stderr,">>%s<<\n",linebuffer);
 				linebuffer[ret] = 0;
 				if (strstr(linebuffer, "OK")) {
 					_RPT0(0, " -- OK received\n");
@@ -97,7 +111,7 @@ void AttysComm::sendSyncCommand(const char *message, int waitForOK) {
 				}
 			}
 		}
-		_RPT0(0, "-- no OK received!\n");
+		_RPT0(0, " -- no OK received!\n");
 	}
 }
 
@@ -191,6 +205,11 @@ void AttysComm::run() {
 	while (doRun) {
 
 		int ret = recv(btsocket, recvbuffer, 8191, 0);
+		if (ret<0) {
+			if (attysCommError) {
+				attysCommError->hasError(errno,"data reception error");	
+			}
+		}
 		if (ret > 0) {
 			recvbuffer[ret] = 0;
 			strcat(inbuffer, recvbuffer);

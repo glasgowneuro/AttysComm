@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
-"""
-@author: Bernd Porr, mail@berndporr.me.uk
+#!/usr/bin/python3
 
-"""
-
+import sys
+sys.path.append('./..')
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation

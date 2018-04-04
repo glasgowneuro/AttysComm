@@ -64,19 +64,25 @@ class AttysComm;
 
 #pragma once
 
+// callback when a sample has arrived
+struct AttysCommListener {
+	// provides timestamp,array of all channels
+	virtual void hasSample(float,float *) = 0;
+};
+
+// type which represents the samples
+typedef float* sample_p;
+
+// callback when an error has occurred
+struct AttysCommError {
+	// provides error number and a text message about the error
+	virtual void hasError(int,const char*) = 0;
+};
+
 
 ///////////////////////////////////////////////////////////////////
 // AttysComm takes a socket as an argument (Linux or Windows)
 // and then connects to the Attys
-
-
-struct AttysCommListener {
-	virtual void hasSample(float,float *) = 0;
-};
-
-
-// type which represents the samples
-typedef float* sample_p;
 
 
 class AttysComm : public AttysThread
@@ -378,6 +384,26 @@ public:
 
 private:
 	AttysCommListener* callbackInterface = NULL;
+
+	
+public:
+	////////////////////////////////////////////////
+	// Callback function which is called
+	// whenever an error has occurred
+        // Implemented as an interface
+	
+	// Register a callback
+	void registerErrorCallback(AttysCommError* f) {
+		attysCommError = f;
+	}
+
+	// Unregister the callback
+	void unregisterErrorCallback() {
+		attysCommError = NULL;
+	}
+
+private:
+	AttysCommError* attysCommError = NULL;
 
 	
 private:

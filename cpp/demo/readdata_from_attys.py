@@ -1,3 +1,6 @@
+#!/usr/bin/python3
+import sys
+sys.path.append('./..')
 import pyattyscomm
 s = pyattyscomm.AttysScan()
 s.scan()
