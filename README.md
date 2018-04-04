@@ -10,7 +10,7 @@ the JAVA class in the usual Android subdirectories.
 
 ## C++
 
-### Installation/compilation is with cmake under Linux / Mac:
+### Installation/compilation is with cmake under Linux
 
 ```
 cmake .
@@ -49,8 +49,8 @@ int ret = attysScan.scan();
 attysScan.nAttysDevices
 ```
 
-3. If devices have been detected they show up as an array
-attysScan.attysComm[0,1,2,etc] points to the AttysComm instances
+3. If devices have been detected they show up as an array.
+`attysScan.attysComm[0,1,2,etc]` points to the AttysComm instances.
 
 4. Set the parameters, for example:
 ```
