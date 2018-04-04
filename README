@@ -147,13 +147,14 @@ If SWIG is installed then a binary Python module is generated:
 
 Copy these files into your project or install them with "setup.py install".
 
-There is a demo program which shows you how to read data with this
-module:
+There are a demo programs which show you how to read/plot data with this
+python module:
 
-readdata_demo.py
+- readdata_demo.py
+- realtime_plot_demo.py
 
 This works so far only under Linux. Under Windows SWIG creates
-a C++ wrapper for the module which won't compile with VS++. Future
+a C++ wrapper for this module but won't compile under VS++. Future
 version of SWIG will have probably fixed it.
 
 
