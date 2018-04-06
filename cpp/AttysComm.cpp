@@ -289,7 +289,7 @@ void AttysComm::run() {
 						ringBuffer[inPtr][k] = sample[k];
 					}
 					if (callbackInterface) {
-						callbackInterface->hasSample(timestamp,sample);
+						callbackInterface->hasSample((float)timestamp,sample);
 					}
 					timestamp = timestamp + 1.0 / getSamplingRateInHz();
 					sampleNumber++;
