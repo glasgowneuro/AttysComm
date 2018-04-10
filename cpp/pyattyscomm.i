@@ -1,3 +1,5 @@
+%module(directors="1") pyattyscomm
+%feature("director") AttysScanListener;
 %module pyattyscomm
 %{
 	#define SWIG_FILE_WITH_INIT

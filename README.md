@@ -164,14 +164,24 @@ It's blocking and will only return after the Thread talking to the Attys has bee
 
 ## Python wrapper (Linux)
 
-If SWIG is installed then a binary Python module is generated:
+If SWIG is installed then binary files for the python module `pyattyscomm`
+are generated which have the same classes as the C++ implementation.
 
+### Linux
 - `pyattyscomm.py`
 - `_pyattyscomm.so`
 
-...which has the same classes as the C++ implementation.
-
 Copy these files into your project or install them with `setup.py install`.
+
+### Windows
+- `Release\_pyattyscomm.exp`
+- `Release\_pyattyscomm.pyd`
+- `pyattyscomm.py`
+Make sure to select "Release" in Visual Studio as python is usually not installed with its debug libraries
+
+Copy these files into your project directory or the python site directories.
+
+## Demo programs
 
 There are a demo programs which show you how to read/plot data with this
 python module:
@@ -181,9 +191,6 @@ readdata_demo.py
 realtime_plot_demo.py
 ```
 
-This works so far only under Linux. Under Windows SWIG creates
-a C++ wrapper for this module but won't compile under VS++. Future
-version of SWIG will have probably fixed it.
 
 
 
