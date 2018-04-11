@@ -27,6 +27,7 @@ extern AttysScan attysScan;
 
 // callback which reports the status of the scanner
 struct AttysScanListener {
+	virtual ~AttysScanListener() {};
 	virtual void message(const int, const char *) = 0;
 };
 

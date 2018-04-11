@@ -64,6 +64,8 @@ class AttysComm;
 
 // callback when a sample has arrived
 struct AttysCommListener {
+	// empty destructor in case of a delete
+	~AttysCommListener() {};
 	// provides timestamp,array of all channels
 	virtual void hasSample(float,float *) = 0;
 };
