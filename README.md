@@ -162,7 +162,7 @@ It's blocking and will only return after the Thread talking to the Attys has bee
 
 
 
-## Python wrapper (Linux)
+## Python wrapper (SWIG)
 
 If SWIG is installed then binary files for the python module `pyattyscomm`
 are generated which have the same classes as the C++ implementation.
@@ -177,14 +177,15 @@ Copy these files into your project or install them with `setup.py install`.
 - `Release\_pyattyscomm.exp`
 - `Release\_pyattyscomm.pyd`
 - `pyattyscomm.py`
-Make sure to select "Release" in Visual Studio as python is usually not installed with its debug libraries
+Make sure to select "Release" in Visual Studio as python
+is usually not installed with its debug libraries.
 
-Copy these files into your project directory or the python site directories.
+Copy these files into your project directory or the python site directories
+for system-wide use.
 
 ## Demo programs
 
-There are a demo programs which show you how to read/plot data with this
-python module:
+There are demo programs which show you how to read/plot data with pyattyscomm:
 
 ```
 readdata_demo.py
