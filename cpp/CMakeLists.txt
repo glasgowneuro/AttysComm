@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.5)
 set (CMAKE_CXX_STANDARD 11)
 
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+	set(CMAKE_BUILD_TYPE "Release")
+endif()
+
 project(attyscomm VERSION 1.2.0 LANGUAGES CXX)
 include(GNUInstallDirs)
 
