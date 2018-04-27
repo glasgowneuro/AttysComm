@@ -1,5 +1,6 @@
 # AttysCOMM
 
+![alt tag](ecu_attys_daq_board.png)
 
 This is the C++ and JAVA API for the Attys: http://www.attys.tech
 
