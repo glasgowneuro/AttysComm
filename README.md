@@ -1,9 +1,8 @@
 # AttysCOMM
 
+The C++ and JAVA API for the Attys: http://www.attys.tech
+
 ![alt tag](ecu_attys_daq_board.png)
-
-This is the C++ and JAVA API for the Attys: http://www.attys.tech
-
 
 The C++ class (with a Python wrapper) is in the "cpp" directory and
 the JAVA class in the usual Android subdirectories.
@@ -129,16 +128,6 @@ attysComm.start();
     class UpdatePlotTask extends TimerTask {
 
         public synchronized void run() {
-
-            if (attysComm != null) {
-                if (attysComm.hasFatalError()) {
-                    handler.sendEmptyMessage(AttysComm.MESSAGE_ERROR);
-                    return;
-                }
-            }
-            if (attysComm != null) {
-                if (!attysComm.hasActiveConnection()) return;
-            }
 
             if (attysComm != null) {
 
