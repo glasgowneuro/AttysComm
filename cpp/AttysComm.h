@@ -37,7 +37,7 @@ class AttysComm;
 #include <sys/socket.h>
 #include <unistd.h>
 #define Sleep(u) usleep((u*1000))
-#ifdef NDEBUG
+#if (defined(NDEBUG) || defined(QT_NO_DEBUG))
 #define _RPT0(u,v)
 #define _RPT1(u,v,w)
 #else
