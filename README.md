@@ -23,6 +23,18 @@ one called libattyscomm_static.a and a python module called
 pyattyscomm which contains exactly the class members of AttysComm
 and AttysScan.
 
+### C++ Ubuntu packages for xenial and bionic
+
+Run from the command line:
+```
+sudo add-apt-repository ppa:berndporr/attys
+sudo add-apt-repository ppa:berndporr/usbdux
+```
+This adds these repositories to your package manager.
+Then select `attyscomm` and `attyscomm-dev`. The example
+programs are under `/usr/share/doc/attyscomm-dev/`.
+
+
 ### Installation under Windows:
 Under windows only the static library is generated which
 should be used for your code development.
