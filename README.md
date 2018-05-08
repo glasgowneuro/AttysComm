@@ -158,10 +158,15 @@ If SWIG is installed then binary files for the python module `pyattyscomm`
 are generated which have the same classes as the C++ implementation.
 
 ### Linux
+Two files are generated:
+
 - `pyattyscomm.py`
 - `_pyattyscomm.so`
 
-Copy these files into your project or install them with `setup.py install`.
+After you've run `make` install them with
+```python3 ./setup.py install```
+and then you
+can load the module `pyattyscomm` system-wide!
 
 ### Windows
 - `Release\_pyattyscomm.exp`
