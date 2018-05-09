@@ -175,8 +175,8 @@ Two files are generated:
 - `pyattyscomm.py`
 - `_pyattyscomm.so`
 
-After you've run `make` install them with
-```python3 ./setup.py install```
+Install them with
+```./setup.py install```
 and then you
 can load the module `pyattyscomm` system-wide!
 
