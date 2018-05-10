@@ -22,7 +22,7 @@ one called libattyscomm_static.a and a python module called
 pyattyscomm which contains exactly the class members of AttysComm
 and AttysScan.
 
-### C++/Python Ubuntu packages for xenial and bionic
+### C++ Ubuntu packages for xenial and bionic
 
 Run from the command line:
 
@@ -31,7 +31,6 @@ sudo add-apt-repository ppa:berndporr/attys
 sudo add-apt-repository ppa:berndporr/usbdux
 sudo apt-get update
 sudo apt-get install attyscomm attyscomm-dev
-pip3 install pyattyscomm
 ```
 
 The example programs are under `/usr/share/doc/attyscomm-dev/`.
@@ -185,7 +184,18 @@ and then you can load the module `pyattyscomm` system-wide!
 
 Or install them via pip under Linux:
 
-```pip3 install pyattyscomm```
+Make sure you have the attyscomm libraries:
+```
+sudo add-apt-repository ppa:berndporr/attys
+sudo add-apt-repository ppa:berndporr/usbdux
+sudo apt-get update
+sudo apt-get install attyscomm attyscomm-dev
+```
+and then install with:
+
+```
+pip3 install pyattyscomm
+```
 
 ### Windows
 - `Release\_pyattyscomm.exp`
