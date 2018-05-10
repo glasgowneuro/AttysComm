@@ -170,19 +170,18 @@ It's blocking and will only return after the Thread talking to the Attys has bee
 If SWIG is installed then binary files for the python module `pyattyscomm`
 are generated which have the same classes as the C++ implementation.
 
+This libary is very fast, multi threaded and has a ring buffer. See
+the features of the C++ library which are the same.
+
 ### Linux
-Two files are generated:
 
-- `pyattyscomm.py`
-- `_pyattyscomm.so`
-
-Install them with
+#### From source
 
 ```./setup.py install```
 
 and then you can load the module `pyattyscomm` system-wide!
 
-Or install them via pip under Linux:
+#### Python package (pip):
 
 Make sure you have the attyscomm libraries:
 ```
