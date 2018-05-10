@@ -1,1 +1,2 @@
 include *.py
+include pyattyscommPYTHON_wrap.h
