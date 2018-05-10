@@ -7,7 +7,6 @@ The C++ and JAVA API for the Attys: http://www.attys.tech
 The C++ class (with a Python wrapper) is in the "cpp" directory and
 the JAVA class in the usual Android subdirectories.
 
-
 ## C++
 
 ### Installation/compilation is with cmake under Linux
@@ -23,16 +22,19 @@ one called libattyscomm_static.a and a python module called
 pyattyscomm which contains exactly the class members of AttysComm
 and AttysScan.
 
-### C++ Ubuntu packages for xenial and bionic
+### C++/Python Ubuntu packages for xenial and bionic
 
 Run from the command line:
+
 ```
 sudo add-apt-repository ppa:berndporr/attys
 sudo add-apt-repository ppa:berndporr/usbdux
+sudo apt-get update
+sudo apt-get install attyscomm attyscomm-dev
+pip3 install pyattyscomm
 ```
-This adds these repositories to your package manager.
-Then select `attyscomm` and `attyscomm-dev`. The example
-programs are under `/usr/share/doc/attyscomm-dev/`.
+
+The example programs are under `/usr/share/doc/attyscomm-dev/`.
 
 
 ### Installation under Windows:
@@ -176,9 +178,14 @@ Two files are generated:
 - `_pyattyscomm.so`
 
 Install them with
+
 ```./setup.py install```
-and then you
-can load the module `pyattyscomm` system-wide!
+
+and then you can load the module `pyattyscomm` system-wide!
+
+Or install them via pip under Linux:
+
+```pip3 install pyattyscomm```
 
 ### Windows
 - `Release\_pyattyscomm.exp`
