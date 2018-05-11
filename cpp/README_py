@@ -1,9 +1,10 @@
-=========================================
-Python API for the Attys (www.attys.tech)
-=========================================
+========================
+Python API for the Attys
+========================
 
 Attys is a lightweight bluetooth DAQ box which can measure anything from temperature to ECG.
 
+http://www.attys.tech
 
 
 
