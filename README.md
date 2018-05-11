@@ -28,7 +28,6 @@ Run from the command line:
 
 ```
 sudo add-apt-repository ppa:berndporr/attys
-sudo add-apt-repository ppa:berndporr/usbdux
 sudo apt-get update
 sudo apt-get install attyscomm attyscomm-dev
 ```
@@ -167,7 +166,11 @@ It's blocking and will only return after the Thread talking to the Attys has bee
 
 ## Python (SWIG)
 
-This libary is very fast, multi threaded and has a ring buffer.
+This libary is very fast and is multi threaded. It performs
+the data acquisition in the background while python can then
+do the postprocessing.
+
+Pre-compiled packages for both Linux and Windows are available.
 
 ### Linux
 
@@ -176,7 +179,6 @@ This libary is very fast, multi threaded and has a ring buffer.
 Make sure you have the attyscomm libraries:
 ```
 sudo add-apt-repository ppa:berndporr/attys
-sudo add-apt-repository ppa:berndporr/usbdux
 sudo apt-get update
 sudo apt-get install attyscomm attyscomm-dev
 ```
@@ -202,7 +204,17 @@ and then you can load the module `pyattyscomm` system-wide!
 
 ### Windows
 
-You need to compile from source with Visual C++ and swig needs to be installed.
+#### Python package (pip):
+
+In the python console type:
+
+```
+pip install pyattyscomm
+```
+
+### From source
+
+Install `swig` and re-run the C++ instllation.
 Make sure to select "Release" in Visual Studio as python
 is usually not installed with its debug libraries.
 After compilation you get:
@@ -211,8 +223,10 @@ After compilation you get:
 - `Release\_pyattyscomm.pyd`
 - `pyattyscomm.py`
 
-Copy these files into your project directory or the python site directories
-for system-wide use.
+Install them with:
+```
+python setup.py install
+```
 
 ### How to use
 
