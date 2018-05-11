@@ -1,66 +1,69 @@
-Python API for the Attys (www.attys.tech).
+=========================================
+Python API for the Attys (www.attys.tech)
+=========================================
 
-Attys is a lightweight bluetooth DAQ box which can measure
-anything from temperature to ECG.
+Attys is a lightweight bluetooth DAQ box which can measure anything from temperature to ECG.
 
 
 
 
-QUICK START GUIDE
+Quick start guide
+=================
 
-```
-  # load the module
-  import pyattyscomm
+Here are the basic steps how to use the API::
 
-  # Gets the AttysScan class which scans for Attys via bluetooth
-  s = pyattyscomm.AttysScan()
+      # load the module
+      import pyattyscomm
 
-  # Scan for Attys
-  s.scan()
+      # Gets the AttysScan class which scans for Attys via bluetooth
+      s = pyattyscomm.AttysScan()
 
-  # get the 1st Attys
-  c = s.getAttysComm(0)
+      # Scan for Attys
+      s.scan()
 
-  # if an attys has been found c points to it. Otherwise it's None.
+      # get the 1st Attys
+      c = s.getAttysComm(0)
 
-  # Start data acquisition in the background
-  c.start()
+      # if an attys has been found c points to it. Otherwise it's None.
 
-  # Now we just read data at our convenience in a loop or timer or thread
-  # if data is available you can read it from the ringBuffer
+      # Start data acquisition in the background
+      c.start()
 
-  while (not c.hasSampleAvilabale()):
-    # do something else or nothing
+      # Now we just read data at our convenience in a loop or timer or thread
+      # if data is available you can read it from the ringBuffer
 
-  # getting a sample (array of all Attys channels)
-  sample = c.getSampleFromBuffer()
+      while (not c.hasSampleAvilabale()):
+      	    # do something else or nothing
 
-  # do something with the sample
-  print(sample)
+      # getting a sample (array of all Attys channels)
+      sample = c.getSampleFromBuffer()
 
-  # rinse and repeat!
+      # do something with the sample
+      print(sample)
 
-See readdata_from_attys.py for the full code:
+      # rinse and repeat!
+
+The full code is on github:
 
 https://github.com/glasgowneuro/AttysComm/blob/master/cpp/demo/readdata_from_attys.py
-```
 
 
 
-API DOCUMENTATION
 
-```
-  import pyattyscomm
-  help(pyattyscomm.AttysScan)
-  help(pyattyscomm.AttysComm)
-```
+API documentation
+==================
 
-The python API is identical to the C++ one:
+Query it via the python help system::
+
+    import pyattyscomm
+    help(pyattyscomm.AttysScan)
+    help(pyattyscomm.AttysComm)
+
+
+The Python classes have been generated with SWIG. The header files AttysComm.h and AttysScan.h provide detailed info about the classes:
 
 https://github.com/glasgowneuro/AttysComm/tree/master/cpp
 
-The header files AttysComm.h and AttysScan.h provide more
-detailed info.
 
 
 
@@ -68,9 +71,10 @@ detailed info.
 
 
 
-DEMOS
+Demos
+=====
 
-On github you find two python demos: one which prints the
+On github are two python demos: one which prints the
 ADC data to the screen and one which plots it with matplotlib.
 
 https://github.com/glasgowneuro/AttysComm/tree/master/cpp/demo
