@@ -4,20 +4,31 @@
 setup.py file for AttysComm
 """
 
-from distutils.core import setup, Extension
+from setuptools import setup
+from setuptools import Extension
 import os
+from sys import platform
 
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
-attyscomm_module = Extension('_pyattyscomm',
-                           sources=['pyattyscommPYTHON_wrap.cxx'],
-                           extra_compile_args=['-std=c++11'],
-                           libraries=['attyscomm','bluetooth'],
-                           )
+if platform == "linux" or platform == "linux2":
+	attyscomm_module = Extension('_pyattyscomm',
+							sources=['pyattyscommPYTHON_wrap.cxx'],
+							extra_compile_args=['-std=c++11'],
+							libraries=['attyscomm','bluetooth'],
+							)
+elif platform == "win32":
+	attyscomm_module = Extension('_pyattyscomm',
+							sources=['pyattyscommPYTHON_wrap.cxx'],
+							extra_compile_args=['/DWIN32_LEAN_AND_MEAN'],
+                            libraries=['ws2_32'],
+							extra_link_args=['Release\\attyscomm_static.lib'],
+							)
 
+						   
 setup (name = 'pyattyscomm',
-       version = '1.2.1b21',
+       version = '1.2.1b22',
        author      = "Bernd Porr",
        author_email = "bernd@glasgowneuro.tech",
        url = "https://github.com/glasgowneuro/AttysComm",
@@ -29,6 +40,7 @@ setup (name = 'pyattyscomm',
        classifiers=[
           'Intended Audience :: Developers',
           'Operating System :: POSIX',
+		  'Operating System :: Microsoft :: Windows',
           'Programming Language :: Python'
           ]
       )
