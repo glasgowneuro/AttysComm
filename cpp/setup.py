@@ -14,12 +14,13 @@ attyscomm_module = Extension('_pyattyscomm',
                            )
 
 setup (name = 'pyattyscomm',
-       version = '1.2.1',
+       version = '1.2.1b1',
        author      = "Bernd Porr",
        author_email = "bernd@glasgowneuro.tech",
        url = "https://github.com/glasgowneuro/AttysComm",
-       license = "../LICENSE",
-       description = """API for the Attys (www.attys.tech) under Linux""",
+       description = 'API for the Attys',
+       long_description = 'API for the DAQ box Attys (www.attys.tech) for Linux',
        ext_modules = [attyscomm_module],
        py_modules = ["pyattyscomm"],
+       license='Apache 2.0',
        )

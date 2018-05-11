@@ -7,7 +7,6 @@ The C++ and JAVA API for the Attys: http://www.attys.tech
 The C++ class (with a Python wrapper) is in the "cpp" directory and
 the JAVA class in the usual Android subdirectories.
 
-
 ## C++
 
 ### Installation/compilation is with cmake under Linux
@@ -26,13 +25,15 @@ and AttysScan.
 ### C++ Ubuntu packages for xenial and bionic
 
 Run from the command line:
+
 ```
 sudo add-apt-repository ppa:berndporr/attys
 sudo add-apt-repository ppa:berndporr/usbdux
+sudo apt-get update
+sudo apt-get install attyscomm attyscomm-dev
 ```
-This adds these repositories to your package manager.
-Then select `attyscomm` and `attyscomm-dev`. The example
-programs are under `/usr/share/doc/attyscomm-dev/`.
+
+The example programs are under `/usr/share/doc/attyscomm-dev/`.
 
 
 ### Installation under Windows:
@@ -169,16 +170,31 @@ It's blocking and will only return after the Thread talking to the Attys has bee
 If SWIG is installed then binary files for the python module `pyattyscomm`
 are generated which have the same classes as the C++ implementation.
 
+This libary is very fast, multi threaded and has a ring buffer. See
+the features of the C++ library which are the same.
+
 ### Linux
-Two files are generated:
 
-- `pyattyscomm.py`
-- `_pyattyscomm.so`
+#### From source
 
-Install them with
 ```./setup.py install```
-and then you
-can load the module `pyattyscomm` system-wide!
+
+and then you can load the module `pyattyscomm` system-wide!
+
+#### Python package (pip):
+
+Make sure you have the attyscomm libraries:
+```
+sudo add-apt-repository ppa:berndporr/attys
+sudo add-apt-repository ppa:berndporr/usbdux
+sudo apt-get update
+sudo apt-get install attyscomm attyscomm-dev
+```
+and then install with:
+
+```
+pip3 install pyattyscomm
+```
 
 ### Windows
 - `Release\_pyattyscomm.exp`
