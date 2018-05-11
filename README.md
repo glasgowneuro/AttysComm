@@ -206,7 +206,44 @@ is usually not installed with its debug libraries.
 Copy these files into your project directory or the python site directories
 for system-wide use.
 
-## Demo programs
+### How to use
+
+The python API is identical to the C++ one.
+Check out the header files AttysComm.h and AttysScan.h
+
+Here is an example:
+
+```
+# load the module
+import pyattyscomm
+
+# Gets the AttysScan class which scans for Attys via bluetooth
+s = pyattyscomm.AttysScan()
+
+# Scan for Attys
+s.scan()
+
+# get the 1st Attys
+c = s.getAttysComm(0)
+
+# if an attys has been found c points to it. Otherwise it's None.
+
+# Start data acquisition in the background
+c.start()
+
+# Now we just read data at our convenience in a loop or timer or thread
+
+while (not c.hasSampleAvilabale()):
+        # do something else or nothing
+	a = a + 1
+    # getting a sample
+    sample = c.getSampleFromBuffer()
+
+    # do something with the sample
+    print(sample)
+```
+
+### Demo programs
 
 There are demo programs which show you how to read/plot data with pyattyscomm:
 

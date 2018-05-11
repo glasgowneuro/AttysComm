@@ -5,7 +5,10 @@ setup.py file for AttysComm
 """
 
 from distutils.core import setup, Extension
+import os
 
+def read(fname):
+    return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 attyscomm_module = Extension('_pyattyscomm',
                            sources=['pyattyscommPYTHON_wrap.cxx'],
@@ -14,13 +17,18 @@ attyscomm_module = Extension('_pyattyscomm',
                            )
 
 setup (name = 'pyattyscomm',
-       version = '1.2.1b1',
+       version = '1.2.1b10',
        author      = "Bernd Porr",
        author_email = "bernd@glasgowneuro.tech",
        url = "https://github.com/glasgowneuro/AttysComm",
-       description = 'API for the Attys',
-       long_description = 'API for the DAQ box Attys (www.attys.tech) for Linux',
+       description = 'API for the Attys DAQ box (www.attys.tech)',
+       long_description=read('README_py'),
        ext_modules = [attyscomm_module],
        py_modules = ["pyattyscomm"],
        license='Apache 2.0',
-       )
+       classifiers=[
+          'Intended Audience :: Developers',
+          'Operating System :: POSIX',
+          'Programming Language :: Python'
+          ]
+      )

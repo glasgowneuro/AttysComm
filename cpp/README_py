@@ -1,0 +1,68 @@
+Python API for the Attys (www.attys.tech).
+
+Attys is a lightweight bluetooth DAQ box which can measure
+anything from temperature to ECG.
+
+
+
+
+QUICK START GUIDE
+
+# load the module
+import pyattyscomm
+
+# Gets the AttysScan class which scans for Attys via bluetooth
+s = pyattyscomm.AttysScan()
+
+# Scan for Attys
+s.scan()
+
+# get the 1st Attys
+c = s.getAttysComm(0)
+
+# if an attys has been found c points to it. Otherwise it's None.
+
+# Start data acquisition in the background
+c.start()
+
+# Now we just read data at our convenience in a loop or timer or thread
+# if data is available you can read it from the ringBuffer
+
+while (not c.hasSampleAvilabale()):
+    # do something else or nothing
+
+# getting a sample (array of all Attys channels)
+sample = c.getSampleFromBuffer()
+
+# do something with the sample
+print(sample)
+
+# rinse and repeat: wait for next sample(s)
+```
+
+See readdata_from_attys.py for the full code:
+https://github.com/glasgowneuro/AttysComm/blob/master/cpp/demo/readdata_from_attys.py
+
+
+
+
+API DOCUMENTATION
+
+The python API is identical to the C++ one:
+https://github.com/glasgowneuro/AttysComm/tree/master/cpp
+
+The header files AttysComm.h and AttysScan.h contain all
+function definitions or just use the python help
+system to get more info about it:
+
+import pyattyscomm
+help(pyattyscomm.AttysScan)
+help(pyattyscomm.AttysComm)
+
+
+
+
+
+DEMOS
+
+https://github.com/glasgowneuro/AttysComm/tree/master/cpp/demo
