@@ -167,9 +167,6 @@ It's blocking and will only return after the Thread talking to the Attys has bee
 
 ## Python (SWIG)
 
-If SWIG is installed then binary files for the python module `pyattyscomm`
-are generated which have the same classes as the C++ implementation.
-
 This libary is very fast, multi threaded and has a ring buffer.
 
 ### Linux
@@ -191,17 +188,28 @@ pip3 install pyattyscomm
 
 #### From source
 
-```./setup.py install```
+You need to have swig-3.x installed. Then run:
+
+```
+cmake .
+make
+make install
+./setup.py install
+```
 
 and then you can load the module `pyattyscomm` system-wide!
 
 
 ### Windows
+
+You need to compile from source with Visual C++ and swig needs to be installed.
+Make sure to select "Release" in Visual Studio as python
+is usually not installed with its debug libraries.
+After compilation you get:
+
 - `Release\_pyattyscomm.exp`
 - `Release\_pyattyscomm.pyd`
 - `pyattyscomm.py`
-Make sure to select "Release" in Visual Studio as python
-is usually not installed with its debug libraries.
 
 Copy these files into your project directory or the python site directories
 for system-wide use.
@@ -209,7 +217,7 @@ for system-wide use.
 ### How to use
 
 The python API is identical to the C++ one.
-Check out the header files AttysComm.h and AttysScan.h
+All the definitions are in AttysComm.h and AttysScan.h.
 
 Here is an example:
 
