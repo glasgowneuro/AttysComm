@@ -1,13 +1,12 @@
 # AttysCOMM
 
-The C++ and JAVA API for the Attys: http://www.attys.tech
+The C++, Python and JAVA API for the Attys: http://www.attys.tech
 
 ![alt tag](ecu_attys_daq_board.png)
 
-The C++ class (with a Python wrapper) is in the "cpp" directory and
-the JAVA class in the usual Android subdirectories.
-
 ## C++
+
+The files are in the `cpp` subdirectory.
 
 ### Installation/compilation is with cmake under Linux
 
@@ -190,7 +189,7 @@ pip3 install pyattyscomm
 
 #### From source
 
-You need to have swig-3.x installed. Then run:
+You need to have swig-3.x installed. Then run in the `cpp` directory:
 
 ```
 cmake .
@@ -214,7 +213,7 @@ pip install pyattyscomm
 
 ### From source
 
-Install `swig` and re-run the C++ instllation.
+Install `swig` and re-run the C++ installation.
 Make sure to select "Release" in Visual Studio as python
 is usually not installed with its debug libraries.
 After compilation you get:
