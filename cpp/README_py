@@ -10,7 +10,7 @@ http://www.attys.tech
 Required packages under Linux
 =============================
 
-For Ubuntu Linux you need install these packages::
+For Ubuntu Linux install these packages::
 
       sudo add-apt-repository ppa:berndporr/attys
       sudo add-apt-repository ppa:berndporr/usbdux
@@ -18,6 +18,7 @@ For Ubuntu Linux you need install these packages::
       sudo apt-get install attyscomm attyscomm-dev
 
 For other Linux flavours install them from souce:
+
 https://github.com/glasgowneuro/AttysComm/tree/master/cpp
 
 

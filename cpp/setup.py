@@ -17,7 +17,7 @@ attyscomm_module = Extension('_pyattyscomm',
                            )
 
 setup (name = 'pyattyscomm',
-       version = '1.2.1b20',
+       version = '1.2.1b21',
        author      = "Bernd Porr",
        author_email = "bernd@glasgowneuro.tech",
        url = "https://github.com/glasgowneuro/AttysComm",
