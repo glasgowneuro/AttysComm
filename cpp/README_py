@@ -7,6 +7,19 @@ Attys is a lightweight bluetooth DAQ box which can measure anything from tempera
 http://www.attys.tech
 
 
+Required packages under Linux
+=============================
+
+For Ubuntu Linux you need install these packages::
+
+      sudo add-apt-repository ppa:berndporr/attys
+      sudo add-apt-repository ppa:berndporr/usbdux
+      sudo apt-get update
+      sudo apt-get install attyscomm attyscomm-dev
+
+For other Linux flavours install them from souce:
+https://github.com/glasgowneuro/AttysComm/tree/master/cpp
+
 
 Quick start guide
 =================
