@@ -10,10 +10,9 @@ http://www.attys.tech
 Required packages under Linux
 =============================
 
-For Ubuntu Linux install these packages::
+For Ubuntu Linux install attyscomm attyscomm-dev::
 
       sudo add-apt-repository ppa:berndporr/attys
-      sudo add-apt-repository ppa:berndporr/usbdux
       sudo apt-get update
       sudo apt-get install attyscomm attyscomm-dev
 
@@ -58,12 +57,6 @@ Here are the basic steps how to use the API::
 
       # rinse and repeat!
 
-The full code is on github:
-
-https://github.com/glasgowneuro/AttysComm/blob/master/cpp/demo/readdata_from_attys.py
-
-
-
 
 API documentation
 ==================
@@ -92,4 +85,4 @@ Demos
 On github are two python demos: one which prints the
 ADC data to the screen and one which plots it with matplotlib.
 
-https://github.com/glasgowneuro/AttysComm/tree/master/cpp/demo
+https://github.com/glasgowneuro/AttysComm/tree/master/demo
