@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import sys
-sys.path.append('./..')
+sys.path.append('cpp')
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation

@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 import sys
-sys.path.append('./..')
+sys.path.append('cpp')
 import pyattyscomm
 
 print("Searching for Attys")
