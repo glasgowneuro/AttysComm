@@ -67,6 +67,7 @@ install(TARGETS attyscomm_static
   PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
   PRIVATE_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/attyscomm)
 
+if (UNIX)
 
 FIND_PACKAGE(SWIG)
 FIND_PACKAGE(PythonLibs)
@@ -79,14 +80,9 @@ if (${SWIG_FOUND})
 	SET_SOURCE_FILES_PROPERTIES(pyattyscomm.i PROPERTIES CPLUSPLUS ON)
 	SET_SOURCE_FILES_PROPERTIES(pyattyscomm.i PROPERTIES SWIG_FLAGS "-includeall")
 	SWIG_ADD_MODULE(pyattyscomm python pyattyscomm.i ${LIBSRC})
-	if (UNIX)
 		list(APPEND EXTRA_PY_LIBS "bluetooth")
 		SWIG_LINK_LIBRARIES(pyattyscomm ${PYTHON_LIBRARIES} ${EXTRA_PY_LIBS} attyscomm)
-	endif(UNIX)
-	if (WIN32)
-		SWIG_LINK_LIBRARIES(pyattyscomm ${PYTHON_LIBRARIES} ${EXTRA_PY_LIBS} attyscomm_static)
-		string(REPLACE "_d" "" PYTHON_LIBRARIES "${PYTHON_LIBRARIES}")
-		add_definitions(-DSWIG_PYTHON_INTERPRETER_NO_DEBUG)
-	endif(WIN32)
 	set_source_files_properties( ${swig_generated_file_fullname} PROPERTIES COMPILE_FLAGS "-DWIN32_LEAN_AND_MEAN")
 endif ()
+
+endif(UNIX)
