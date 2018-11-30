@@ -68,8 +68,8 @@ if not c:
     sys.exit()
 
 # Let's create two instances of plot windows
-qtPanningPlot1 = QtPanningPlot("USB-DUX 1st channel")
-qtPanningPlot2 = QtPanningPlot("USB-DUX 2nd channel")
+qtPanningPlot1 = QtPanningPlot("Attys 1st channel")
+qtPanningPlot2 = QtPanningPlot("Attys 2nd channel")
 
 # create a thread which gets the data from the USB-DUX
 t = threading.Thread(target=getDataThread,args=(qtPanningPlot1,qtPanningPlot2,))
