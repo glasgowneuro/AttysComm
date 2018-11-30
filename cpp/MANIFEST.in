@@ -1,5 +1,5 @@
 include *.py
 include README_py
 recursive-include attyscomm *
-include AttysComm.h
-include AttysScan.h
+include AttysComm.*
+include AttysScan.*
