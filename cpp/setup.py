@@ -25,7 +25,7 @@ if platform == "linux" or platform == "linux2":
 							)
 elif platform == "win32":
 	attyscomm_module = Extension('_pyattyscomm',
-							sources=['pyattyscomm.i','AttysComm.cpp','AttysComm.h'],
+							sources=['pyattyscomm.i'],
 							extra_compile_args=['/DWIN32_LEAN_AND_MEAN'],
                                                         libraries=['ws2_32'],
 							extra_link_args=['Release\\attyscomm_static.lib'],

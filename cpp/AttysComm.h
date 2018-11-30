@@ -366,7 +366,7 @@ public:
 	}
 
 	// spelling mishtake in previous versions
-	int hasSampleAvilabale() { return hasSampleAvilabale(); }
+	int hasSampleAvilabale() { return hasSampleAvailable(); }
 
 public:
 	////////////////////////////////////////////////
