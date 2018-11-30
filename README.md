@@ -21,18 +21,6 @@ one called libattyscomm_static.a and a python module called
 pyattyscomm which contains exactly the class members of AttysComm
 and AttysScan.
 
-### C++ Ubuntu packages for xenial and bionic
-
-Run from the command line:
-
-```
-sudo add-apt-repository ppa:berndporr/attys
-sudo apt-get update
-sudo apt-get install attyscomm attyscomm-dev
-```
-
-The example programs are under `/usr/share/doc/attyscomm-dev/`.
-
 
 ### Installation under Windows:
 Under windows only the static library is generated which
@@ -175,11 +163,9 @@ Pre-compiled packages for both Linux and Windows are available.
 
 #### Python package (pip):
 
-Make sure you have the attyscomm libraries:
+Make sure you have the bluetooth development libraries:
 ```
-sudo add-apt-repository ppa:berndporr/attys
-sudo apt-get update
-sudo apt-get install attyscomm attyscomm-dev
+sudo apt-get install attyscomm attyscomm-dev libbluetooth-dev
 ```
 and then install with:
 
