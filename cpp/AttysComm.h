@@ -95,7 +95,6 @@ public:
 
 	~AttysComm();
 
-
 public:
 
 	static const int NCHANNELS = 8;
@@ -362,9 +361,12 @@ public:
 	// ringbuffer keeping data for chunk-wise plotting
 	sample_p getSampleFromBuffer();
 
-	int hasSampleAvilabale() {
+	int hasSampleAvailable() {
 		return (inPtr != outPtr);
 	}
+
+	// spelling mishtake in previous versions
+	int hasSampleAvilabale() { return hasSampleAvilabale(); }
 
 public:
 	////////////////////////////////////////////////

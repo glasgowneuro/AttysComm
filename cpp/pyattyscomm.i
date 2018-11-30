@@ -19,5 +19,7 @@
   }
 }
 
+%include "attyscomm/AttysThread.h"
+%include "attyscomm/base64.h"
 %include "AttysComm.h"
 %include "AttysScan.h"

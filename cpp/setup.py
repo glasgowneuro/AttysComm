@@ -14,14 +14,18 @@ def read(fname):
 
 if platform == "linux" or platform == "linux2":
 	attyscomm_module = Extension('_pyattyscomm',
-							sources=['pyattyscomm.i'],
+							sources=['pyattyscomm.i',
+                                                                 'AttysComm.cpp',
+                                                                 'AttysScan.cpp',
+                                                                 'attyscomm/base64.cpp'
+                                                        ],
 							extra_compile_args=['-std=c++11'],
-							libraries=['attyscomm','bluetooth'],
+							libraries=['bluetooth'],
                                                         swig_opts=['-c++','-py3'],
 							)
 elif platform == "win32":
 	attyscomm_module = Extension('_pyattyscomm',
-							sources=['pyattyscomm.i'],
+							sources=['pyattyscomm.i','AttysComm.cpp','AttysComm.h'],
 							extra_compile_args=['/DWIN32_LEAN_AND_MEAN'],
                                                         libraries=['ws2_32'],
 							extra_link_args=['Release\\attyscomm_static.lib'],
@@ -30,7 +34,7 @@ elif platform == "win32":
 
 						   
 setup (name = 'pyattyscomm',
-       version = '1.2.2.4',
+       version = '1.3.0.0',
        author      = "Bernd Porr",
        author_email = "bernd@glasgowneuro.tech",
        url = "https://github.com/glasgowneuro/AttysComm",

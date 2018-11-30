@@ -1,4 +1,8 @@
 #!/usr/bin/python3
+"""
+Plots channel 7 of the Attys in two different windows. Requires pyqtgraph.
+
+"""
 
 import sys
 sys.path.append('cpp')
@@ -8,11 +12,14 @@ import matplotlib.animation as animation
 import pyattyscomm
 
 # read from channel 7
-channel = 7
+channel = pyattyscomm.AttysComm.INDEX_Analogue_channel_1
 
 s = pyattyscomm.AttysScan()
 s.scan()
 c = s.getAttysComm(0)
+if not c:
+    print("No Attys connected and/or paired")
+    sys.exit()
 c.start()
 
 # now let's plot the data
@@ -41,7 +48,7 @@ def data_gen():
     #endless loop which gets data
     while True:
         data = np.zeros(0)
-        while (c.hasSampleAvilabale()):
+        while (c.hasSampleAvailable()):
             sample = c.getSampleFromBuffer()
             data = np.append(data,sample[channel])
         yield data
