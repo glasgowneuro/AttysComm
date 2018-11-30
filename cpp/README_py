@@ -10,11 +10,9 @@ http://www.attys.tech
 Required packages under Linux
 =============================
 
-For Ubuntu Linux install attyscomm attyscomm-dev::
+For Ubuntu Linux install libbluetooth-dev::
 
-      sudo add-apt-repository ppa:berndporr/attys
-      sudo apt-get update
-      sudo apt-get install attyscomm attyscomm-dev
+      sudo apt-get install libbluetooth-dev
 
 For other Linux flavours install them from souce:
 
@@ -83,6 +81,6 @@ Demos
 =====
 
 On github are two python demos: one which prints the
-ADC data to the screen and one which plots it with matplotlib.
+ADC data to the screen and two demos which plots it.
 
 https://github.com/glasgowneuro/AttysComm/tree/master/demo
