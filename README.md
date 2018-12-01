@@ -153,7 +153,7 @@ It's blocking and will only return after the Thread talking to the Attys has bee
 
 ## Python (SWIG)
 
-This libary is very fast and is multi threaded. It performs
+This libary is fast and multi threaded. It performs
 the data acquisition in the background while python can then
 do the postprocessing.
 
@@ -165,7 +165,7 @@ Pre-compiled packages for both Linux and Windows are available.
 
 Make sure you have the bluetooth development libraries:
 ```
-sudo apt-get install attyscomm attyscomm-dev libbluetooth-dev
+sudo apt-get install libbluetooth-dev
 ```
 and then install with:
 
