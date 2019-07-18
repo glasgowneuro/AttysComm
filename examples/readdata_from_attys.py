@@ -13,6 +13,6 @@ if (c == None):
 c.start()
 while True:
     while (not c.hasSampleAvilabale()):
-        a = 1
+        pass
     sample = c.getSampleFromBuffer()
     print(sample)
