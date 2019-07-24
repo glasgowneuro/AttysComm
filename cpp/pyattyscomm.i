@@ -12,6 +12,10 @@
 
 %typemap(out) sample_p {
   int i;
+  if (NULL == $1) {
+	  PyErr_SetString(PyExc_ValueError,"Sample array is NULL. There's no data available.");
+	  return NULL;
+  }
   $result = PyList_New(8);
   for (i = 0; i < 8; i++) {
     PyObject *o = PyFloat_FromDouble((double) $1[i]);
