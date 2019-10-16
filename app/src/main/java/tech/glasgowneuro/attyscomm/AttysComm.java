@@ -46,7 +46,7 @@ import java.util.UUID;
  */
 public class AttysComm {
 
-    public final static int NCHANNELS = 8;
+    public final static int NCHANNELS = 11;
 
     // index numbers of the channels returned in the data array
     public static final int INDEX_Acceleration_X = 0;
@@ -57,6 +57,9 @@ public class AttysComm {
     public static final int INDEX_Magnetic_field_Z = 5;
     public static final int INDEX_Analogue_channel_1 = 6;
     public static final int INDEX_Analogue_channel_2 = 7;
+    public static final int INDEX_GPIO0 = 8;
+    public static final int INDEX_GPIO1 = 9;
+    public static final int INDEX_CHARGING = 10;
 
     // descriptions the channels in text form
     public final static String[] CHANNEL_DESCRIPTION = {
@@ -67,7 +70,10 @@ public class AttysComm {
             "Magnetic field Y",
             "Magnetic field Z",
             "Analogue channel 1",
-            "Analogue channel 2"
+            "Analogue channel 2",
+            "Digital I/O 0",
+            "Digital I/O 1",
+            "Charging"
     };
 
     // descriptions the channels in text form
@@ -79,7 +85,10 @@ public class AttysComm {
             "Mag Y",
             "Mag Z",
             "ADC 1",
-            "ADC 2"
+            "ADC 2",
+            "GPIO0",
+            "GPIO1",
+            "CHARGING",
     };
 
     // units of the channels
@@ -90,6 +99,9 @@ public class AttysComm {
             "T",
             "T",
             "T",
+            "V",
+            "V",
+            "V",
             "V",
             "V"
     };
@@ -547,7 +559,7 @@ public class AttysComm {
             try {
                 mmInStream = mmSocket.getInputStream();
                 mmOutStream = mmSocket.getOutputStream();
-                bufferedReader = new BufferedReader(new InputStreamReader(mmInStream,"US-ASCII"));
+                bufferedReader = new BufferedReader(new InputStreamReader(mmInStream, "US-ASCII"));
             } catch (Exception es) {
                 try {
                     mmSocket.close();
@@ -817,6 +829,11 @@ public class AttysComm {
                                 data[INDEX_Analogue_channel_1 + i] = v;
                             }
 
+                            // Log.d(TAG,""+raw[6]);
+                            data[INDEX_GPIO0] = (raw[6] & 32) == 0 ? 0:1;
+                            data[INDEX_GPIO1] = (raw[6] & 64) == 0 ? 0:1;
+                            data[INDEX_CHARGING] = (raw[6] & 0x80) == 0 ? 0:1;
+
                             if (fullOrPartialData == FULL_DATA) {
                                 for (int i = 0; i < 6; i++) {
                                     long v = (raw[8 + i * 2] & 0xff)
@@ -905,14 +922,16 @@ public class AttysComm {
                             }
                         }
 
+                        sample[INDEX_GPIO0] = data[INDEX_GPIO0];
+                        sample[INDEX_GPIO1] = data[INDEX_GPIO1];
+                        sample[INDEX_CHARGING] = data[INDEX_CHARGING];
+
                         // in case a sample has been lost
                         for (int j = 0; j < nTrans; j++) {
                             if (dataListener != null) {
                                 dataListener.gotData(sampleNumber, sample);
                             }
-                            if (ringBuffer != null) {
-                                System.arraycopy(sample, 0, ringBuffer[inPtr], 0, sample.length);
-                            }
+                            System.arraycopy(sample, 0, ringBuffer[inPtr], 0, sample.length);
                             timestamp = timestamp + 1.0 / getSamplingRateInHz();
                             sampleNumber++;
                             inPtr++;
