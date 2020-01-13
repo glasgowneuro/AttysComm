@@ -3,6 +3,7 @@ class AttysComm;
 #ifndef __ATTYS_COMM_H
 #define __ATTYS_COMM_H
 
+#define TIMEOUT_IN_SECS 3
 
 /**
  * AttysComm contains all the neccessary comms to talk to
@@ -57,6 +58,8 @@ class AttysComm;
 #else
 #endif
 
+#include <thread>   
+
 #include "attyscomm/AttysThread.h"
 #include "attyscomm/base64.h"
 
@@ -78,11 +81,6 @@ struct AttysCommMessage {
 	// provides error number and a text message about the error
 	virtual void hasMessage(int,const char*) = 0;
 };
-
-
-///////////////////////////////////////////////////////////////////
-// AttysComm takes a socket as an argument (Linux or Windows)
-// and then connects to the Attys
 
 
 class AttysComm : public AttysThread
@@ -463,6 +461,7 @@ private:
 	float* sample;
 	char* inbuffer;
 	int isCharging = 0;
+	int watchdogCounter = 0;
 
 	void sendSyncCommand(const char *message, int checkOK);
 
@@ -493,6 +492,22 @@ private:
 	void quit() {
 		doRun = false;
 	}
+
+	static void watchdogThread(AttysComm* attysComm) {
+		while (1) {
+			attysComm->watchdogCounter--;
+			if (attysComm->watchdogCounter < 1) {
+				attysComm->receptionTimeout();
+				attysComm->watchdogCounter = 0;
+			}
+			Sleep(1000);
+		}
+	}
+
+	void receptionTimeout() {
+		_RPT0(0, "Timeout.\n");
+	}
+
 };
 
 

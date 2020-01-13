@@ -246,6 +246,9 @@ void AttysComm::run() {
 
 	char* lf = nullptr;
 
+	watchdogCounter = TIMEOUT_IN_SECS * getSamplingRateInHz();
+	std::thread watchdog(AttysComm::watchdogThread, this);
+
 	// Keep listening to the InputStream until an exception occurs
 	while (doRun) {
 
@@ -256,6 +259,7 @@ void AttysComm::run() {
 			}
 		}
 		if (ret > 0) {
+			watchdogCounter = TIMEOUT_IN_SECS;
 			recvbuffer[ret] = 0;
 			strcat(inbuffer, recvbuffer);
 			// search for LF (CR is first)
