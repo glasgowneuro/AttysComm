@@ -360,6 +360,7 @@ public:
 	static const int MESSAGE_STARTED_RECORDING = 4;
 	static const int MESSAGE_STOPPED_RECORDING = 5;
 	static const int MESSAGE_CONNECTING = 6;
+	static const int MESSAGE_TIMEOUT = 7;
 
 	//////////////////////////////////////////////////////////////////////////
 	// connects to the Attys by opening the socket
@@ -369,7 +370,7 @@ public:
 
 	//////////////////////////////////////////////////////////////////////////
 	// closes socket safely
-	void safeShutdown();
+	void closeSocket();
 
 	////////////////////////////////////////////
 	// connection info
@@ -462,6 +463,7 @@ private:
 	char* inbuffer;
 	int isCharging = 0;
 	int watchdogCounter = 0;
+	int ignoreData = 0;
 
 	void sendSyncCommand(const char *message, int checkOK);
 
@@ -504,9 +506,7 @@ private:
 		}
 	}
 
-	void receptionTimeout() {
-		_RPT0(0, "Timeout.\n");
-	}
+	void receptionTimeout();
 
 };
 

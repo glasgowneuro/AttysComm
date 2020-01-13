@@ -85,7 +85,8 @@ void AttysComm::connect() {
 	throw "Connect failed";
 }
 
-void AttysComm::safeShutdown() {
+
+void AttysComm::closeSocket() {
 #ifdef __linux__ 
 	close(btsocket);
 #elif _WIN32
@@ -93,12 +94,12 @@ void AttysComm::safeShutdown() {
 	closesocket(btsocket);
 #else
 #endif
-	doRun = 0;
 }
 
 
 AttysComm::~AttysComm() {
-	safeShutdown();
+	doRun = 0;
+	closeSocket();
 	free(btAddr);
 }
 
@@ -212,6 +213,7 @@ void AttysComm::sendInit() {
 #else
 	fcntl(btsocket, F_SETFL, fcntl(btsocket, F_GETFL, 0) | O_NONBLOCK);
 #endif
+	strcpy(inbuffer, "");
 	send(btsocket, rststr, (int)strlen(rststr), 0);
 	sendSyncCommand("x=0", 1);
 	// switching to base64 encoding
@@ -229,8 +231,32 @@ void AttysComm::sendInit() {
 #else
 	fcntl(btsocket, F_SETFL, fcntl(btsocket, F_GETFL, 0) & ~O_NONBLOCK);
 #endif
+	strcpy(inbuffer, "");
 	_RPT0(0,"Init finished. Waiting for data.\n");
 }
+
+
+void AttysComm::receptionTimeout() {
+	_RPT0(0, "Timeout.\n");
+	if (attysCommMessage) {
+		attysCommMessage->hasMessage(MESSAGE_TIMEOUT, "reception timeout");
+	}
+	ignoreData = 1;
+	closeSocket();
+	for(;;) {
+		try {
+			connect();
+			break;
+		}
+		catch (const char *) {
+			_RPT0(0, "Reconnect failed. Sleeping for 1 sec.\n");
+			Sleep(1);
+		}
+	}
+	sendInit();
+	ignoreData = 0;
+}
+
 
 
 void AttysComm::run() {
@@ -239,8 +265,6 @@ void AttysComm::run() {
 	int nTrans = 1;
 
 	sendInit();
-
-	strcpy(inbuffer, "");
 
 	doRun = 1;
 
@@ -252,6 +276,9 @@ void AttysComm::run() {
 	// Keep listening to the InputStream until an exception occurs
 	while (doRun) {
 
+		while ( ignoreData && doRun ) {
+			Sleep(100);
+		}
 		int ret = recv(btsocket, recvbuffer, 8191, 0);
 		if (ret<0) {
 			if (attysCommMessage) {

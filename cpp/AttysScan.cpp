@@ -187,6 +187,9 @@ int AttysScan::scan(int maxAttysDevs) {
 
 				int btAddrLen = pwsaResults->lpcsaBuffer->RemoteAddr.iSockaddrLength;
 				attysComm[nAttysDevices] = new AttysComm((struct sockaddr *)btAddr, btAddrLen);
+				if (attysComm[nAttysDevices] == NULL) {
+					break;
+				}
 				try {
 					attysComm[nAttysDevices]->connect();
 					sprintf(attysName[nAttysDevices], "#%d: %s", nAttysDevices, name);
@@ -197,7 +200,8 @@ int AttysScan::scan(int maxAttysDevs) {
 					if (statusCallback) {
 						statusCallback->message(SCAN_CONNECTERR, msg);
 					}
-					attysComm[nAttysDevices]->safeShutdown();
+					attysComm[nAttysDevices]->closeSocket();
+					delete attysComm[nAttysDevices];
 					attysComm[nAttysDevices] = NULL;
 				}
 			}
