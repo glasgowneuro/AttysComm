@@ -74,9 +74,9 @@ struct AttysCommListener {
 typedef float* sample_p;
 
 // callback when an error has occurred
-struct AttysCommError {
+struct AttysCommMessage {
 	// provides error number and a text message about the error
-	virtual void hasError(int,const char*) = 0;
+	virtual void hasMessage(int,const char*) = 0;
 };
 
 
@@ -91,13 +91,13 @@ public:
 	/////////////////////////////////////////////////
 	// Constructor: takes the bluetooth device as an argument
 	// it then tries to connect to the Attys
-	AttysComm(SOCKET _btsocket);
+	AttysComm(struct sockaddr *btAddr = NULL, int btAddrLen = 0);
 
 	~AttysComm();
 
 public:
 
-	static const int NCHANNELS = 11;
+	static const int NCHANNELS = 10;
 
 	// index numbers of the channels returned in the data array
 	static const int INDEX_Acceleration_X = 0;
@@ -110,7 +110,6 @@ public:
 	static const int INDEX_Analogue_channel_2 = 7;
 	static const int INDEX_GPIO0 = 8;
 	static const int INDEX_GPIO1 = 9;
-	static const int INDEX_CHARGING = 10;
 
 
 	// descriptions the channels in text form
@@ -140,7 +139,6 @@ public:
 		"ADC 2",
 		"DIN 0",
 		"DIN 1",
-		"CHARG"
 	};
 
 	// units of the channels
@@ -155,7 +153,6 @@ public:
 		"V",
 		" ",
 		" ",
-		" "
 	};
 
 	///////////////////////////////////////////////////////////////////
@@ -346,6 +343,13 @@ public:
 	}
 
 
+	/////////////////////////////////////////////////
+	// Charging indicator. Returns one if charging
+	int getIsCharging() {
+		return isCharging;
+	}
+
+
 	///////////////////////////////////////////////////////////////////////
 	// message listener
 	// sends error/success messages back
@@ -358,6 +362,16 @@ public:
 	static const int MESSAGE_STARTED_RECORDING = 4;
 	static const int MESSAGE_STOPPED_RECORDING = 5;
 	static const int MESSAGE_CONNECTING = 6;
+
+	//////////////////////////////////////////////////////////////////////////
+	// connects to the Attys by opening the socket
+	// throws exception if it fails
+	void connect();
+
+
+	//////////////////////////////////////////////////////////////////////////
+	// closes socket safely
+	void safeShutdown();
 
 	////////////////////////////////////////////
 	// connection info
@@ -408,23 +422,25 @@ public:
         // Implemented as an interface
 	
 	// Register a callback
-	void registerErrorCallback(AttysCommError* f) {
-		attysCommError = f;
+	void registerMessageCallback(AttysCommMessage* f) {
+		attysCommMessage = f;
 	}
 
 	// Unregister the callback
-	void unregisterErrorCallback() {
-		attysCommError = NULL;
+	void unregisterMessageCallback() {
+		attysCommMessage = NULL;
 	}
 
 private:
-	AttysCommError* attysCommError = NULL;
+	AttysCommMessage* attysCommMessage = NULL;
 
 	
 private:
 	///////////////////////////////////////////////////////
 	// from here it's private
-	SOCKET btsocket;
+	struct sockaddr *btAddr;
+	int btAddrLen;
+	SOCKET btsocket = 0;
 	int doRun = 0;
 	// ringbuffer
 	float** ringBuffer;
@@ -446,6 +462,7 @@ private:
 	char* raw;
 	float* sample;
 	char* inbuffer;
+	int isCharging = 0;
 
 	void sendSyncCommand(const char *message, int checkOK);
 

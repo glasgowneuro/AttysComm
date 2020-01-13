@@ -180,39 +180,25 @@ int AttysScan::scan(int maxAttysDevs) {
 			}
 
 			for (int i = 0; i < 5; i++) {
-
-				// allocate a socket
-				SOCKET s = ::socket(AF_BTH, SOCK_STREAM, BTHPROTO_RFCOMM);
-
-				if (INVALID_SOCKET == s) {
-					_RPT0(0,"=CRITICAL= | socket() call failed.\n");
-					return -1;
-				}
-
 				PSOCKADDR_BTH btAddr = (SOCKADDR_BTH *)(pwsaResults->lpcsaBuffer->RemoteAddr.lpSockaddr);
 				btAddr->addressFamily = AF_BTH;
 				btAddr->serviceClassId = RFCOMM_PROTOCOL_UUID;
 				btAddr->port = BT_PORT_ANY;
 
 				int btAddrLen = pwsaResults->lpcsaBuffer->RemoteAddr.iSockaddrLength;
-
-				// connect to server
-				int status = ::connect(s, (struct sockaddr *)btAddr, btAddrLen);
-
-				if (status == 0) {
-					attysComm[nAttysDevices] = new AttysComm(s);
-					assert(attysComm[nAttysDevices] != nullptr);
+				attysComm[nAttysDevices] = new AttysComm((struct sockaddr *)btAddr, btAddrLen);
+				try {
+					attysComm[nAttysDevices]->connect();
 					sprintf(attysName[nAttysDevices], "#%d: %s", nAttysDevices, name);
 					nAttysDevices++;
 					break;
-				}
-				else {
-					_RPT0(0,"Connect failed\n");
+				} 
+				catch (const char *msg) {
 					if (statusCallback) {
-						statusCallback->message(SCAN_CONNECTERR, "Connect failed");
+						statusCallback->message(SCAN_CONNECTERR, msg);
 					}
-					shutdown(s, SD_BOTH);
-					closesocket(s);
+					attysComm[nAttysDevices]->safeShutdown();
+					attysComm[nAttysDevices] = NULL;
 				}
 			}
 		} else {

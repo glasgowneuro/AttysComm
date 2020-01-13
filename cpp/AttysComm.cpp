@@ -5,10 +5,16 @@
 #include <chrono>
 #include <thread>
 
-AttysComm::AttysComm(SOCKET _btsocket)
+AttysComm::AttysComm(struct sockaddr *_btAddr, int _btAddrLen)
 {
-	btsocket = _btsocket;
-
+	if ( (_btAddr) && (_btAddrLen > 0) ) {
+		btAddr = (struct sockaddr *) malloc(_btAddrLen);
+		memcpy(btAddr, _btAddr, _btAddrLen);
+		btAddrLen = _btAddrLen;
+	} else {
+		btAddr = NULL;
+		btAddrLen = 0;
+	}
 	adcMuxRegister = new int[2];
 	adcMuxRegister[0] = 0;
 	adcMuxRegister[1] = 0;
@@ -45,8 +51,41 @@ AttysComm::AttysComm(SOCKET _btsocket)
 	accel_full_scale_index = ACCEL_16G;
 }
 
+void AttysComm::connect() {
+	if (btAddr == NULL) throw "Bluetooth structure is NULL";
+	if (btAddrLen == 0) throw "Bluetooth structure length is zero.";
 
-AttysComm::~AttysComm() {
+	// allocate a socket
+#ifdef __linux__ 
+	btsocket = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);
+#elif _WIN32
+	btsocket = ::socket(AF_BTH, SOCK_STREAM, BTHPROTO_RFCOMM);
+	if (INVALID_SOCKET == btsocket) {
+		_RPT0(0, "=CRITICAL= | socket() call failed.\n");
+		throw "socket() call failed: cannot create socket!";
+	}
+#endif
+
+	// connect to server
+	int status = ::connect(btsocket, btAddr, btAddrLen);
+
+	if (status == 0) {
+		_RPT0(0, "Connect successful\n");
+		if (attysCommMessage) {
+			attysCommMessage->hasMessage(MESSAGE_CONNECTED, "Connected");
+		}
+		return;
+	}
+	_RPT1(0, "Connect failed: %d\n",status);
+	if (attysCommMessage) {
+		attysCommMessage->hasMessage(MESSAGE_ERROR, "Connect failed");
+	}
+	shutdown(btsocket, SD_BOTH);
+	closesocket(btsocket);
+	throw "Connect failed";
+}
+
+void AttysComm::safeShutdown() {
 #ifdef __linux__ 
 	close(btsocket);
 #elif _WIN32
@@ -55,6 +94,12 @@ AttysComm::~AttysComm() {
 #else
 #endif
 	doRun = 0;
+}
+
+
+AttysComm::~AttysComm() {
+	safeShutdown();
+	free(btAddr);
 }
 
 
@@ -84,8 +129,8 @@ void AttysComm::sendSyncCommand(const char *message, int waitForOK) {
 		_RPT1(0,"Sending: %s",message);
 		ret = send(btsocket, message, (int)strlen(message), 0);
 		if (ret < 0) {
-			if (attysCommError) {
-				attysCommError->hasError(errno,"message transmit error");	
+			if (attysCommMessage) {
+				attysCommMessage->hasMessage(errno,"message transmit error");	
 			}
 		}
 		send(btsocket, cr, (int)strlen(cr), 0);
@@ -97,8 +142,8 @@ void AttysComm::sendSyncCommand(const char *message, int waitForOK) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			ret = recv(btsocket, linebuffer, 8191, 0);
 			if (ret < 0) {
-				if (attysCommError) {
-					attysCommError->hasError(errno,"could receive OK");	
+				if (attysCommMessage) {
+					attysCommMessage->hasMessage(errno,"could receive OK");	
 				}
 			}
 			if ((ret > 2) && (ret < 5)) {
@@ -206,8 +251,8 @@ void AttysComm::run() {
 
 		int ret = recv(btsocket, recvbuffer, 8191, 0);
 		if (ret<0) {
-			if (attysCommError) {
-				attysCommError->hasError(errno,"data reception error");	
+			if (attysCommMessage) {
+				attysCommMessage->hasMessage(errno,"data reception error");	
 			}
 		}
 		if (ret > 0) {
@@ -238,7 +283,7 @@ void AttysComm::run() {
 					// Log.d(TAG,""+raw[6]);
 					sample[INDEX_GPIO0] = (float)((raw[6] & 32) == 0 ? 0 : 1);
 					sample[INDEX_GPIO1] = (float)((raw[6] & 64) == 0 ? 0 : 1);
-					sample[INDEX_CHARGING] = (float)((raw[6] & 0x80) == 0 ? 0 : 1);
+					isCharging = ((raw[6] & 0x80) == 0 ? 0 : 1);
 
 					// check that the timestamp is the expected one
 					int ts = 0;
