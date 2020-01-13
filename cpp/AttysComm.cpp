@@ -235,6 +235,11 @@ void AttysComm::run() {
 						data[i] = v;
 					}
 
+					// Log.d(TAG,""+raw[6]);
+					sample[INDEX_GPIO0] = (float)((raw[6] & 32) == 0 ? 0 : 1);
+					sample[INDEX_GPIO1] = (float)((raw[6] & 64) == 0 ? 0 : 1);
+					sample[INDEX_CHARGING] = (float)((raw[6] & 0x80) == 0 ? 0 : 1);
+
 					// check that the timestamp is the expected one
 					int ts = 0;
 					nTrans = 1;

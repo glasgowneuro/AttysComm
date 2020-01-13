@@ -97,7 +97,7 @@ public:
 
 public:
 
-	static const int NCHANNELS = 8;
+	static const int NCHANNELS = 11;
 
 	// index numbers of the channels returned in the data array
 	static const int INDEX_Acceleration_X = 0;
@@ -108,6 +108,10 @@ public:
 	static const int INDEX_Magnetic_field_Z = 5;
 	static const int INDEX_Analogue_channel_1 = 6;
 	static const int INDEX_Analogue_channel_2 = 7;
+	static const int INDEX_GPIO0 = 8;
+	static const int INDEX_GPIO1 = 9;
+	static const int INDEX_CHARGING = 10;
+
 
 	// descriptions the channels in text form
 	const std::string CHANNEL_DESCRIPTION[NCHANNELS] = {
@@ -119,6 +123,9 @@ public:
 		"Magnetic field Z",
 		"Analogue channel 1",
 		"Analogue channel 2"
+		"DIN channel 0",
+		"DIN channel 1",
+		"Charging status"
 	};
 
 	// descriptions of the channels in text form
@@ -130,7 +137,10 @@ public:
 		"Mag Y",
 		"Mag Z",
 		"ADC 1",
-		"ADC 2"
+		"ADC 2",
+		"DIN 0",
+		"DIN 1",
+		"CHARG"
 	};
 
 	// units of the channels
@@ -142,7 +152,10 @@ public:
 		"T",
 		"T",
 		"V",
-		"V"
+		"V",
+		" ",
+		" ",
+		" "
 	};
 
 	///////////////////////////////////////////////////////////////////
