@@ -87,6 +87,7 @@ void AttysComm::connect() {
 
 void AttysComm::closeSocket() {
 #ifdef __linux__ 
+	shutdown(btsocket, SHUT_RDWR);
 	close(btsocket);
 #elif _WIN32
 	shutdown(btsocket, SD_BOTH);
