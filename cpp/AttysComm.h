@@ -3,7 +3,7 @@ class AttysComm;
 #ifndef __ATTYS_COMM_H
 #define __ATTYS_COMM_H
 
-#define TIMEOUT_IN_SECS 3
+#define TIMEOUT_IN_SECS 2
 
 /**
  * AttysComm contains all the neccessary comms to talk to
@@ -361,6 +361,7 @@ public:
 	static const int MESSAGE_STOPPED_RECORDING = 5;
 	static const int MESSAGE_CONNECTING = 6;
 	static const int MESSAGE_TIMEOUT = 7;
+	static const int MESSAGE_RECONNECTED = 8;
 
 	//////////////////////////////////////////////////////////////////////////
 	// connects to the Attys by opening the socket
@@ -378,11 +379,6 @@ public:
 		return isConnected;
 	}
 
-	int hasFatalError() {
-		return fatalError;
-	}
-
-
 	/////////////////////////////////////////////////
 	// ringbuffer keeping data for chunk-wise plotting
 	sample_p getSampleFromBuffer();
@@ -394,12 +390,18 @@ public:
 	// spelling mishtake in previous versions
 	int hasSampleAvilabale() { return hasSampleAvailable(); }
 
+	// resets the ringbuffer to zero content
+	void resetRingbuffer() {
+		inPtr = 0;
+		outPtr = 0;
+	}
+
 public:
 	////////////////////////////////////////////////
 	// Realtime callback function which is called
 	// whenever a sample has arrived.
-        // Implemented as an interface
-	
+		// Implemented as an interface
+
 	// Register a callback
 	void registerCallback(AttysCommListener* f) {
 		callbackInterface = f;
@@ -410,16 +412,12 @@ public:
 		callbackInterface = NULL;
 	}
 
-private:
-	AttysCommListener* callbackInterface = NULL;
 
-	
-public:
 	////////////////////////////////////////////////
 	// Callback function which is called
 	// whenever an error has occurred
-        // Implemented as an interface
-	
+		// Implemented as an interface
+
 	// Register a callback
 	void registerMessageCallback(AttysCommMessage* f) {
 		attysCommMessage = f;
@@ -430,13 +428,21 @@ public:
 		attysCommMessage = NULL;
 	}
 
-private:
-	AttysCommMessage* attysCommMessage = NULL;
+	/* Call this from the main activity to shutdown the connection */
+	void quit() {
+		doRun = false;
+	}
 
-	
+	// True while the Attys is getting initialised
+	int isInittialising() {
+		return initialising;
+	}
+
 private:
 	///////////////////////////////////////////////////////
 	// from here it's private
+	AttysCommMessage* attysCommMessage = NULL;
+	AttysCommListener* callbackInterface = NULL;
 	struct sockaddr *btAddr;
 	int btAddrLen;
 	SOCKET btsocket = 0;
@@ -448,7 +454,6 @@ private:
 	int inPtr = 0;
 	int outPtr = 0;
 	int isConnected = 0;
-	int fatalError = 0;
 	int* adcMuxRegister;
 	int* adcGainRegister;
 	int* adcCurrNegOn;
@@ -463,7 +468,7 @@ private:
 	char* inbuffer;
 	int isCharging = 0;
 	int watchdogCounter = 0;
-	int ignoreData = 0;
+	int initialising = 1;
 
 	void sendSyncCommand(const char *message, int checkOK);
 
@@ -488,12 +493,6 @@ private:
 	void sendInit();
 
 	void run();
-
-	public:
-	/* Call this from the main activity to shutdown the connection */
-	void quit() {
-		doRun = false;
-	}
 
 	static void watchdogThread(AttysComm* attysComm) {
 		while (1) {

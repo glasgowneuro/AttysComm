@@ -101,6 +101,18 @@ AttysComm::~AttysComm() {
 	doRun = 0;
 	closeSocket();
 	free(btAddr);
+	delete[] adcMuxRegister;
+	delete[] adcGainRegister;
+	delete[] adcCurrNegOn;
+	delete[] adcCurrPosOn;
+	for (int i = 0; i < nMem; i++) {
+		delete[] ringBuffer[i];
+	}
+	delete[] ringBuffer;
+	delete[] data;
+	delete[] raw;
+	delete[] sample;
+	delete[] inbuffer;
 }
 
 
@@ -207,6 +219,8 @@ void AttysComm::sendGainMux(int channel, int gain, int mux) {
 void AttysComm::sendInit() {
 	char rststr[] = "\n\n\n\n\r";
 	_RPT0(0,"Sending Init\n");
+	// flag to prevent the data receiver to mess it up!
+	initialising = 1;
 #ifdef _WIN32
 	u_long iMode = 1;
 	ioctlsocket(btsocket, FIONBIO, &iMode);
@@ -232,6 +246,7 @@ void AttysComm::sendInit() {
 	fcntl(btsocket, F_SETFL, fcntl(btsocket, F_GETFL, 0) & ~O_NONBLOCK);
 #endif
 	strcpy(inbuffer, "");
+	initialising = 0;
 	_RPT0(0,"Init finished. Waiting for data.\n");
 }
 
@@ -239,11 +254,11 @@ void AttysComm::sendInit() {
 void AttysComm::receptionTimeout() {
 	_RPT0(0, "Timeout.\n");
 	if (attysCommMessage) {
-		attysCommMessage->hasMessage(MESSAGE_TIMEOUT, "reception timeout");
-	}
-	ignoreData = 1;
+		attysCommMessage->hasMessage(MESSAGE_TIMEOUT, "reception timeout to Attys");
+	} 
+	initialising = 1;
 	closeSocket();
-	for(;;) {
+	while (doRun) {
 		try {
 			connect();
 			break;
@@ -253,8 +268,15 @@ void AttysComm::receptionTimeout() {
 			Sleep(1);
 		}
 	}
+	if (!doRun) {
+		return;
+	}
 	sendInit();
-	ignoreData = 0;
+	initialising = 0;
+	if (attysCommMessage) {
+		attysCommMessage->hasMessage(MESSAGE_RECONNECTED, "reconnected to Attys");
+	}
+	_RPT0(0, "Reconnected.\n");
 }
 
 
@@ -276,7 +298,7 @@ void AttysComm::run() {
 	// Keep listening to the InputStream until an exception occurs
 	while (doRun) {
 
-		while ( ignoreData && doRun ) {
+		while ( initialising && doRun ) {
 			Sleep(100);
 		}
 		int ret = recv(btsocket, recvbuffer, 8191, 0);
