@@ -91,9 +91,6 @@ void AttysComm::closeSocket() {
 	close(btsocket);
 #elif _WIN32
 	shutdown(btsocket, SD_BOTH);
-	char recvbuffer[65536];
-	int ret = recv(btsocket, recvbuffer, sizeof(recvbuffer), 0);
-	_RPT1(0, "Closing socket. Leftover bytes: %d\n", ret);
 	closesocket(btsocket);
 #else
 #endif
