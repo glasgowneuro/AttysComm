@@ -90,32 +90,24 @@ int AttysScan::scan(int maxAttysDevs) {
 				saddr.rc_family = AF_BLUETOOTH;
 				saddr.rc_channel = (uint8_t) 1;
 				str2ba( addr, &saddr.rc_bdaddr );
-				
-				// connect to server
-				int status = ::connect(s,
-						       (struct sockaddr *)&saddr,
-						       sizeof(saddr));
-				
-				if (status == 0) {
-					attysComm[nAttysDevices] = new AttysComm(s);
-					sprintf(attysName[nAttysDevices], "%d:%s", nAttysDevices, name);
-					fprintf(stderr,"Success.\n");
+				attysComm[nAttysDevices] = new AttysComm((struct sockaddr *)&saddr,
+									 sizeof(saddr));
+				if (attysComm[nAttysDevices] == NULL) {
+					break;
+				}
+				try {
+					attysComm[nAttysDevices]->connect();
+					sprintf(attysName[nAttysDevices], "#%d: %s", nAttysDevices, name);
 					nAttysDevices++;
 					break;
-				} else {
-					fprintf(stderr,"Connect failed. Error code = %d. ",status);
-					if (status == -1) {
-						fprintf(stderr,"Permission denied. Please pair the Attys with your bluetooth adapter.\n");
-						if (statusCallback) {
-							statusCallback->message(SCAN_CONNECTERR,"Permission denied. Attys not paired with this computer.");
-						}
-					} else {
-						if (statusCallback) {
-							statusCallback->message(SCAN_CONNECTERR,"Connect failed");
-						}
+				} 
+				catch (const char *msg) {
+					if (statusCallback) {
+						statusCallback->message(SCAN_CONNECTERR, msg);
 					}
-					::close(s);
-					fprintf(stderr,"\n");
+					attysComm[nAttysDevices]->closeSocket();
+					delete attysComm[nAttysDevices];
+					attysComm[nAttysDevices] = NULL;
 				}
 			} else {
 				fprintf(stderr,"\n");
