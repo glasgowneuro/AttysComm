@@ -34,7 +34,7 @@ elif platform == "win32":
 
 						   
 setup (name = 'pyattyscomm',
-       version = '1.3.3.3',
+       version = '2.0.0.0',
        author      = "Bernd Porr",
        author_email = "bernd@glasgowneuro.tech",
        url = "https://github.com/glasgowneuro/AttysComm",
