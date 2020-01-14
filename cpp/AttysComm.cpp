@@ -76,12 +76,11 @@ void AttysComm::connect() {
 		}
 		return;
 	}
-	_RPT1(0, "Connect failed: %d\n",status);
+	_RPT1(0, "Connect failed: status=%d\n",status);
 	if (attysCommMessage) {
 		attysCommMessage->hasMessage(MESSAGE_ERROR, "Connect failed");
 	}
-	shutdown(btsocket, SD_BOTH);
-	closesocket(btsocket);
+	closeSocket();
 	throw "Connect failed";
 }
 
@@ -91,6 +90,9 @@ void AttysComm::closeSocket() {
 	close(btsocket);
 #elif _WIN32
 	shutdown(btsocket, SD_BOTH);
+	char recvbuffer[65536];
+	int ret = recv(btsocket, recvbuffer, sizeof(recvbuffer), 0);
+	_RPT1(0, "Closing socket. Leftover bytes: %d\n", ret);
 	closesocket(btsocket);
 #else
 #endif
@@ -301,7 +303,7 @@ void AttysComm::run() {
 		while ( initialising && doRun ) {
 			Sleep(100);
 		}
-		int ret = recv(btsocket, recvbuffer, 8191, 0);
+		int ret = recv(btsocket, recvbuffer, sizeof(recvbuffer), 0);
 		if (ret<0) {
 			if (attysCommMessage) {
 				attysCommMessage->hasMessage(errno,"data reception error");	

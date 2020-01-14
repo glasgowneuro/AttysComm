@@ -433,8 +433,8 @@ public:
 		doRun = false;
 	}
 
-	// True while the Attys is getting initialised
-	int isInittialising() {
+	// True while the Attys is getting initialised for example during re-connect
+	int isInitialising() {
 		return initialising;
 	}
 
@@ -450,7 +450,8 @@ private:
 	// ringbuffer
 	float** ringBuffer;
 	// number of entries in the ringbuffer
-	const int nMem = 10000;
+	// buffer for 10secs at 1kHz
+	const int nMem = 1000*10;
 	int inPtr = 0;
 	int outPtr = 0;
 	int isConnected = 0;
