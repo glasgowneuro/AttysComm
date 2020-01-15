@@ -18,8 +18,7 @@ set(PUBLICHEADERS
   AttysScan.h)
 
 set(PRIVATEHEADERS
-  attyscomm/base64.h
-  attyscomm/AttysThread.h)
+  attyscomm/base64.h)
 
 if(UNIX)
   

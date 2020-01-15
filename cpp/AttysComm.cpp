@@ -7,6 +7,7 @@
 
 AttysComm::AttysComm(struct sockaddr *_btAddr, int _btAddrLen)
 {
+	mainThread = NULL;
 	if ( (_btAddr) && (_btAddrLen > 0) ) {
 		btAddr = (struct sockaddr *) malloc(_btAddrLen);
 		memcpy(btAddr, _btAddr, _btAddrLen);
@@ -102,6 +103,10 @@ void AttysComm::closeSocket() {
 
 AttysComm::~AttysComm() {
 	doRun = 0;
+	if (mainThread) {
+		mainThread->join();
+		delete mainThread;
+	}
 	closeSocket();
 	free(btAddr);
 	delete[] adcMuxRegister;
@@ -283,6 +288,12 @@ void AttysComm::receptionTimeout() {
 }
 
 
+void AttysComm::start() {
+	if (mainThread) {
+		return;
+	}
+	mainThread = new std::thread(AttysComm::execMainThread,this);
+}
 
 void AttysComm::run() {
 	char recvbuffer[8192];
