@@ -97,8 +97,9 @@ int AttysScan::scan(int maxAttysDevs) {
 				}
 				try {
 					attysComm[nAttysDevices]->connect();
-					sprintf(attysName[nAttysDevices], "#%d: %s", nAttysDevices, name);
+					strncpy(attysName[nAttysDevices],name,sizeof(name));
 					nAttysDevices++;
+					fprintf(stderr," Connected.\n");
 					break;
 				} 
 				catch (const char *msg) {
@@ -108,6 +109,7 @@ int AttysScan::scan(int maxAttysDevs) {
 					attysComm[nAttysDevices]->closeSocket();
 					delete attysComm[nAttysDevices];
 					attysComm[nAttysDevices] = NULL;
+					fprintf(stderr," Connection error.\n");
 				}
 			} else {
 				fprintf(stderr,"\n");

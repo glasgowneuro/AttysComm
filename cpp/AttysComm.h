@@ -60,7 +60,6 @@ class AttysComm;
 
 #include <thread>   
 
-#include "attyscomm/AttysThread.h"
 #include "attyscomm/base64.h"
 
 #pragma once
@@ -83,7 +82,7 @@ struct AttysCommMessage {
 };
 
 
-class AttysComm : public AttysThread
+class AttysComm
 {
 public:
 	/////////////////////////////////////////////////
@@ -368,6 +367,9 @@ public:
 	// throws exception if it fails
 	void connect();
 
+	//////////////////////////////////////////////////////////////////////////
+	// starts the data acquisition
+	void start();
 
 	//////////////////////////////////////////////////////////////////////////
 	// closes socket safely
@@ -470,6 +472,11 @@ private:
 	int isCharging = 0;
 	int watchdogCounter = 0;
 	int initialising = 1;
+	std::thread* mainThread = NULL;
+
+	static void execMainThread(AttysComm *thr) {
+		thr->run();
+	}
 
 	void sendSyncCommand(const char *message, int checkOK);
 
