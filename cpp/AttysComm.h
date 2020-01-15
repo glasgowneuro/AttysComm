@@ -440,6 +440,22 @@ public:
 		return initialising;
 	}
 
+	// returns an array of 14 bytes
+	unsigned char* getBluetoothBinaryAdress() {
+		return (unsigned char*)(btAddr->sa_data);
+	}
+
+	void getBluetoothAdressString(char* s) {
+		sprintf(s, "%02X:%02X:%02X:%02X:%02X:%02X",
+			(unsigned char)(btAddr->sa_data[0]),
+			(unsigned char)(btAddr->sa_data[1]),
+			(unsigned char)(btAddr->sa_data[2]),
+			(unsigned char)(btAddr->sa_data[3]),
+			(unsigned char)(btAddr->sa_data[4]),
+			(unsigned char)(btAddr->sa_data[5])
+		);
+	}
+
 private:
 	///////////////////////////////////////////////////////
 	// from here it's private
