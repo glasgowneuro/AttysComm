@@ -97,7 +97,7 @@ int AttysScan::scan(int maxAttysDevs) {
 				}
 				try {
 					attysComm[nAttysDevices]->connect();
-					sprintf(attysName[nAttysDevices], "#%d: %s", nAttysDevices, name);
+					strncpy(attysName[nAttysDevices],name,sizeof(name));
 					nAttysDevices++;
 					break;
 				} 

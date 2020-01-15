@@ -829,10 +829,10 @@ public class AttysComm {
                                 data[INDEX_Analogue_channel_1 + i] = v;
                             }
 
-                            // Log.d(TAG,""+raw[6]);
-                            data[INDEX_GPIO0] = (raw[6] & 32) == 0 ? 0:1;
-                            data[INDEX_GPIO1] = (raw[6] & 64) == 0 ? 0:1;
-                            data[INDEX_CHARGING] = (raw[6] & 0x80) == 0 ? 0:1;
+                            sample[INDEX_GPIO0] = (raw[6] & 32) == 0 ? 0:1;
+                            sample[INDEX_GPIO1] = (raw[6] & 64) == 0 ? 0:1;
+                            sample[INDEX_CHARGING] = (raw[6] & 0x80) == 0 ? 0:1;
+                            // Log.d(TAG,""+sample[INDEX_CHARGING]);
 
                             if (fullOrPartialData == FULL_DATA) {
                                 for (int i = 0; i < 6; i++) {
@@ -921,10 +921,6 @@ public class AttysComm {
                                 sample[i] = 0;
                             }
                         }
-
-                        sample[INDEX_GPIO0] = data[INDEX_GPIO0];
-                        sample[INDEX_GPIO1] = data[INDEX_GPIO1];
-                        sample[INDEX_CHARGING] = data[INDEX_CHARGING];
 
                         // in case a sample has been lost
                         for (int j = 0; j < nTrans; j++) {
