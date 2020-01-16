@@ -303,6 +303,10 @@ void AttysComm::run() {
 
 	char* lf = nullptr;
 
+	if (attysCommMessage) {
+		attysCommMessage->hasMessage(MESSAGE_RECEIVING_DATA, "Connected");
+	}
+
 	watchdogCounter = TIMEOUT_IN_SECS * getSamplingRateInHz();
 	std::thread watchdog(AttysComm::watchdogThread, this);
 

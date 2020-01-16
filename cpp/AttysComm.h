@@ -361,6 +361,7 @@ public:
 	static const int MESSAGE_CONNECTING = 6;
 	static const int MESSAGE_TIMEOUT = 7;
 	static const int MESSAGE_RECONNECTED = 8;
+	static const int MESSAGE_RECEIVING_DATA = 9;
 
 	//////////////////////////////////////////////////////////////////////////
 	// connects to the Attys by opening the socket
