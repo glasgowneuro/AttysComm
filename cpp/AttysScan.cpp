@@ -222,7 +222,12 @@ int AttysScan::scan(int maxAttysDevs) {
 
 
 AttysScan::~AttysScan() {
+	if (!attysComm) return;
 	for (int devNo = 0; devNo < nAttysDevices; devNo++) {
-		attysComm[devNo]->quit();
+		if (attysComm[devNo]) {
+			delete attysComm[devNo];
+			attysComm[devNo] = NULL;
+		}
 	}
+	delete[] attysComm;
 }

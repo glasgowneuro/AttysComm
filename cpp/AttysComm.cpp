@@ -98,14 +98,30 @@ void AttysComm::closeSocket() {
 }
 
 
-AttysComm::~AttysComm() {
+void AttysComm::quit() {
 	doRun = 0;
+	if (watchdog) {
+		watchdog->join();
+		delete watchdog;
+		watchdog = NULL;
+		_RPT0(0, "Watchdog shut down.\n");
+	}
 	if (mainThread) {
 		mainThread->join();
 		delete mainThread;
+		mainThread = NULL;
+		_RPT0(0, "Main acquisition thread shut down.\n");
 	}
 	closeSocket();
-	free(btAddr);
+	if (btAddr) {
+		free(btAddr);
+		btAddr = NULL;
+	}
+}
+
+
+AttysComm::~AttysComm() {
+	quit();
 	delete[] adcMuxRegister;
 	delete[] adcGainRegister;
 	delete[] adcCurrNegOn;
@@ -308,7 +324,7 @@ void AttysComm::run() {
 	}
 
 	watchdogCounter = TIMEOUT_IN_SECS * getSamplingRateInHz();
-	std::thread watchdog(AttysComm::watchdogThread, this);
+	watchdog = new std::thread(AttysComm::watchdogThread, this);
 
 	// Keep listening to the InputStream until an exception occurs
 	while (doRun) {

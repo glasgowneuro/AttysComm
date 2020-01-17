@@ -432,9 +432,7 @@ public:
 	}
 
 	/* Call this from the main activity to shutdown the connection */
-	void quit() {
-		doRun = false;
-	}
+	void quit();
 
 	// True while the Attys is getting initialised for example during re-connect
 	int isInitialising() {
@@ -490,6 +488,7 @@ private:
 	int watchdogCounter = 0;
 	int initialising = 1;
 	std::thread* mainThread = NULL;
+	std::thread* watchdog = NULL;
 
 	static void execMainThread(AttysComm *thr) {
 		thr->run();
@@ -520,13 +519,15 @@ private:
 	void run();
 
 	static void watchdogThread(AttysComm* attysComm) {
-		while (1) {
+		while (attysComm->doRun) {
 			attysComm->watchdogCounter--;
 			if (attysComm->watchdogCounter < 1) {
 				attysComm->receptionTimeout();
 				attysComm->watchdogCounter = 0;
 			}
-			Sleep(1000);
+			for (int i = 0; (i < 10) && attysComm->doRun; i++) {
+				Sleep(100);
+			}
 		}
 	}
 
