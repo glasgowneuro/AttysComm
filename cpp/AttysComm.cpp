@@ -100,12 +100,6 @@ void AttysComm::closeSocket() {
 
 void AttysComm::quit() {
 	doRun = 0;
-	if (watchdog) {
-		watchdog->join();
-		delete watchdog;
-		watchdog = NULL;
-		_RPT0(0, "Watchdog shut down.\n");
-	}
 	if (mainThread) {
 		mainThread->join();
 		delete mainThread;
@@ -439,5 +433,10 @@ void AttysComm::run() {
 
 			}
 		}
+	}
+	if (watchdog) {
+		watchdog->join();
+		delete watchdog;
+		watchdog = NULL;
 	}
 };
