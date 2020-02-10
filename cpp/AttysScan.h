@@ -51,43 +51,48 @@ public:
 	static const int SCAN_CONNECTING = 4;
 	static const int SCAN_CONNECTERR = 5;
 
-	// Register a callback
+	/**
+	* Register callback which reports the scanning progress for
+	* example for a splash screen.
+	**/
 	void registerCallback(AttysScanListener* f) {
 		statusCallback = f;
 	}
 
-	// Unregister the callback
+	/**
+	* Unregisters the callback
+	**/
 	void unregisterCallback() {
 		statusCallback = NULL;
 	}
 
-	AttysScanListener* statusCallback = NULL;
-
-
-
-/**
- * Actual number of Attys Devices
- **/
-	int nAttysDevices = 0;
-
-/**
- * file descriptor for bt devices
- **/
-	SOCKET *dev = NULL;
-
-/**
- * name of the Attys
- **/
-	char** attysName = NULL;
-
-/**
- * Pointer to AttysComm
- **/
-	AttysComm** attysComm = NULL;
-
+	/**
+	* Obtains the pointer to a valid AttysComm class which has been
+	* successfully detected while scanning.
+	**/
 	AttysComm* getAttysComm(int i) {
 		return attysComm[i];
 	}
+
+	/**
+	* Gets the Attys name as reported by the bluetooth manager
+	**/
+	char* getAttysName(int i) {
+		return attysName[i];
+	}
+
+	/**
+	* Returns the number of Attys devices
+	**/
+	int getNAttysDevices() {
+		return nAttysDevices;
+	}
+
+	AttysScanListener* statusCallback = NULL;
+	int nAttysDevices = 0;
+	SOCKET *dev = NULL;
+	char** attysName = NULL;
+	AttysComm** attysComm = NULL;
 
 };
 
