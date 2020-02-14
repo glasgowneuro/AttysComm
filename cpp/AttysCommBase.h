@@ -11,6 +11,11 @@
  **/
 #define TIMEOUT_IN_SECS 2
 
+#ifdef __APPLE__
+#define _RPT0(a,b) fprintf(stderr,b)
+#define _RPT1(a,b,c) fprintf(stderr,b,c)
+#endif
+
 
 /**
  * callback when a sample has arrived

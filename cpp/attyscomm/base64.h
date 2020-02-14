@@ -61,7 +61,7 @@
 #ifndef _BASE64_H_
 #define _BASE64_H_
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__APPLE__)
 #include<inttypes.h>
 #define __int64 int64_t
 #endif

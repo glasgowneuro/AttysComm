@@ -90,7 +90,9 @@ public:
 
 	AttysScanListener* statusCallback = NULL;
 	int nAttysDevices = 0;
+#ifndef __APPLE__
 	SOCKET *dev = NULL;
+#endif
 	char** attysName = NULL;
 	AttysComm** attysComm = NULL;
 

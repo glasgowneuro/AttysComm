@@ -91,6 +91,26 @@ void AttysComm::sendSyncCommand(const char *message, int waitForOK) {
 }
 
 
+void AttysComm::getBluetoothAdressString(char* s) {
+  		sprintf(s, "%02X:%02X:%02X:%02X:%02X:%02X",
+			(unsigned char)(btAddr->sa_data[0]),
+			(unsigned char)(btAddr->sa_data[1]),
+			(unsigned char)(btAddr->sa_data[2]),
+			(unsigned char)(btAddr->sa_data[3]),
+			(unsigned char)(btAddr->sa_data[4]),
+			(unsigned char)(btAddr->sa_data[5])
+		);
+	}
+
+
+unsigned char* AttysComm::getBluetoothBinaryAdress() {
+  return (unsigned char*)(btAddr->sa_data);
+}
+
+
+
+
+
 void AttysComm::sendInit() {
 	_RPT0(0,"Sending Init\n");
 	// flag to prevent the data receiver to mess it up!

@@ -87,8 +87,8 @@ static const unsigned char pr2six[256] =
 __int64 Base64decode_len(const char *bufcoded)
 {
     __int64 nbytesdecoded;
-    register const unsigned char *bufin;
-    register __int64 nprbytes;
+    const unsigned char *bufin;
+    __int64 nprbytes;
 
     bufin = (const unsigned char *) bufcoded;
     while (pr2six[*(bufin++)] <= 63);
@@ -102,9 +102,9 @@ __int64 Base64decode_len(const char *bufcoded)
 __int64 Base64decode(char *bufplain, const char *bufcoded)
 {
     __int64 nbytesdecoded;
-    register const unsigned char *bufin;
-    register unsigned char *bufout;
-    register __int64 nprbytes;
+    const unsigned char *bufin;
+    unsigned char *bufout;
+    __int64 nprbytes;
 
     bufin = (const unsigned char *) bufcoded;
     while (pr2six[*(bufin++)] <= 63);

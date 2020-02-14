@@ -70,14 +70,14 @@ public:
 	/////////////////////////////////////////////////
 	// Constructor: takes the bluetooth device as an argument
 	// it then tries to connect to the Attys
-	AttysComm(struct sockaddr *_btAddr = NULL, int _btAddrLen = 0) : AttysCommBase() {
-		if ((_btAddr) && (_btAddrLen > 0)) {
+	AttysComm(void *_btAddr = NULL, int _btAddrLen = 0) : AttysCommBase() {
+		if (_btAddrLen > 0) {
 			btAddr = (struct sockaddr *) malloc(_btAddrLen);
 			memcpy(btAddr, _btAddr, _btAddrLen);
 			btAddrLen = _btAddrLen;
 		}
 		else {
-			btAddr = NULL;
+			btAddr = (struct sockaddr *) _btAddr;
 			btAddrLen = 0;
 		}
 	};
@@ -103,27 +103,18 @@ public:
 
 public:
 	// returns an array of 14 bytes
-	unsigned char* getBluetoothBinaryAdress() {
-		return (unsigned char*)(btAddr->sa_data);
-	}
+    unsigned char* getBluetoothBinaryAdress();
 
-	void getBluetoothAdressString(char* s) {
-		sprintf(s, "%02X:%02X:%02X:%02X:%02X:%02X",
-			(unsigned char)(btAddr->sa_data[0]),
-			(unsigned char)(btAddr->sa_data[1]),
-			(unsigned char)(btAddr->sa_data[2]),
-			(unsigned char)(btAddr->sa_data[3]),
-			(unsigned char)(btAddr->sa_data[4]),
-			(unsigned char)(btAddr->sa_data[5])
-		);
-	}
+    void getBluetoothAdressString(char* s);
 
 private:
 	///////////////////////////////////////////////////////
 	// from here it's private
 	struct sockaddr *btAddr = NULL;
 	int btAddrLen = 0;
+#ifndef __APPLE__
 	SOCKET btsocket = 0;
+#endif
 
 	static void watchdogThread(AttysComm* attysComm) {
 		while (attysComm->doRun) {
@@ -133,10 +124,17 @@ private:
 				attysComm->watchdogCounter = 0;
 			}
 			for (int i = 0; (i < 10) && attysComm->doRun; i++) {
-				Sleep(100);
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}
 	}
+
+
+
+	//////////////////
+	// mac
+	void* rfcommDevice = NULL;
+
 
 };
 
