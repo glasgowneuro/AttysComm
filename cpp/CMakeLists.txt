@@ -7,6 +7,7 @@ endif()
 
 project(attyscomm VERSION 2.0.0 LANGUAGES CXX)
 include(GNUInstallDirs)
+add_subdirectory(test)
 
 if(APPLE)
 set(LIBSRC
