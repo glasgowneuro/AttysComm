@@ -40,7 +40,7 @@ if(UNIX)
   target_include_directories(attyscomm PRIVATE attyscomm)
   
   set_target_properties(attyscomm PROPERTIES
-    SOVERSION 1
+    SOVERSION 2
     VERSION ${PROJECT_VERSION}
     PUBLIC_HEADER "${PUBLICHEADERS}"
     PRIVATE_HEADER "${PRIVATEHEADERS}")
