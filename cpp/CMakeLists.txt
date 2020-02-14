@@ -11,17 +11,20 @@ include(GNUInstallDirs)
 if(APPLE)
 set(LIBSRC
   AttysComm.mm
+  AttysCommBase.cpp
   AttysScan.mm
   attyscomm/base64.cpp)
 elseif(NOT APPLE)
 set(LIBSRC
   AttysComm.cpp
+  AttysCommBase.cpp
   AttysScan.cpp
   attyscomm/base64.cpp)
 endif(APPLE)
 
 set(PUBLICHEADERS
   AttysComm.h
+  AttysCommBase.h
   AttysScan.h)
 
 set(PRIVATEHEADERS
