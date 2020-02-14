@@ -8,10 +8,17 @@ endif()
 project(attyscomm VERSION 2.0.0 LANGUAGES CXX)
 include(GNUInstallDirs)
 
+if(APPLE)
+set(LIBSRC
+  AttysComm.mm
+  AttysScan.mm
+  attyscomm/base64.cpp)
+elseif(NOT APPLE)
 set(LIBSRC
   AttysComm.cpp
   AttysScan.cpp
   attyscomm/base64.cpp)
+endif(APPLE)
 
 set(PUBLICHEADERS
   AttysComm.h
