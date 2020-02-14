@@ -37,14 +37,6 @@ class AttysComm;
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#define Sleep(u) usleep((u*1000))
-#if (defined(NDEBUG) || defined(QT_NO_DEBUG))
-#define _RPT0(u,v)
-#define _RPT1(u,v,w)
-#else
-#define _RPT0(u,v) fprintf(stderr,v)
-#define _RPT1(u,v,w) fprintf(stderr,v,w)
-#endif
 #define OutputDebugStringW(s)
 #elif _WIN32
 #define _CRT_SECURE_NO_WARNINGS

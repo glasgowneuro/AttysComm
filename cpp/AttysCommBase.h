@@ -1,6 +1,10 @@
+#ifndef AttysCommBase_H
+#define AttysCommBase_H
+
 #pragma once
 #define _CRT_SECURE_NO_WARNINGS
 
+#include <string.h>
 #include <thread>   
 
 #include "attyscomm/base64.h"
@@ -11,11 +15,15 @@
  **/
 #define TIMEOUT_IN_SECS 2
 
-#ifdef __APPLE__
-#define _RPT0(a,b) fprintf(stderr,b)
-#define _RPT1(a,b,c) fprintf(stderr,b,c)
+#if defined(__linux__) || defined(__APPLE__)
+#if (defined(NDEBUG) || defined(QT_NO_DEBUG))
+#define _RPT0(u,v)
+#define _RPT1(u,v,w)
+#else
+#define _RPT0(u,v) fprintf(stderr,v)
+#define _RPT1(u,v,w) fprintf(stderr,v,w)
 #endif
-
+#endif
 
 /**
  * callback when a sample has arrived
@@ -483,3 +491,5 @@ protected:
 	void processRawAttysData(char* data, int len);
 
 };
+
+#endif

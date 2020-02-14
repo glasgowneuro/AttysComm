@@ -158,7 +158,7 @@ void AttysComm::run() {
 	while (doRun) {
 
 		while (initialising && doRun) {
-			Sleep(100);
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 		int ret = recv(btsocket, recvbuffer, sizeof(recvbuffer), 0);
 		if (ret < 0) {
