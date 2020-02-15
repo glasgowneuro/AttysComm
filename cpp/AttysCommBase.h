@@ -400,11 +400,6 @@ public:
 	/* Call this from the main activity to shutdown the connection */
 	void quit();
 
-	// True while the Attys is getting initialised for example during re-connect
-	int isInitialising() {
-		return initialising;
-	}
-
 	// returns an array of 14 bytes
 	virtual unsigned char* getBluetoothBinaryAdress() = 0;
 
@@ -488,7 +483,11 @@ protected:
 
 	void receptionTimeout();
 
-	void processRawAttysData(char* data, int len);
+public:
+	void processRawAttysData(const char* data);
+	int isInitialising() {
+		return initialising;
+	}
 
 };
 

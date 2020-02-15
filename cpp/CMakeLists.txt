@@ -31,6 +31,19 @@ set(PUBLICHEADERS
 set(PRIVATEHEADERS
   attyscomm/base64.h)
 
+if(APPLE)
+
+set(ios_frameworks
+  CoreBluetooth
+  IOBluetooth
+)
+
+foreach (FRAMEWORK_NAME ${ios_frameworks})
+  list(APPEND linked_ios_frameworks "-framework ${FRAMEWORK_NAME}")
+endforeach (FRAMEWORK_NAME)
+
+endif(APPLE)
+
 if(UNIX)
   
   add_library(attyscomm
@@ -51,10 +64,13 @@ if(UNIX)
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     PRIVATE_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/attyscomm)
+
+  if(APPLE)
+    target_link_libraries(attyscomm ${linked_ios_frameworks})
+  endif(APPLE)
   
 endif(UNIX)
 
-  
 add_library(attyscomm_static
   STATIC
   ${LIBSRC}
@@ -63,6 +79,10 @@ add_library(attyscomm_static
 if(WIN32)
   target_link_libraries(attyscomm_static ws2_32)
 endif(WIN32)
+
+if(APPLE)
+    target_link_libraries(attyscomm_static ${linked_ios_frameworks})
+endif(APPLE)
 
 target_include_directories(attyscomm_static PRIVATE attyscomm)
 
@@ -76,3 +96,4 @@ install(TARGETS attyscomm_static
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
   PRIVATE_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/attyscomm)
+

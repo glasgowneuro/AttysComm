@@ -12,6 +12,69 @@
 #import <IOBluetooth/objc/IOBluetoothRFCOMMChannel.h>
 #import <IOBluetoothUI/objc/IOBluetoothDeviceSelectorController.h>
 
+
+@interface AsyncCommDelegate : NSObject <IOBluetoothRFCOMMChannelDelegate> {
+    @public
+    AttysComm* delegateCPP;
+}
+@end
+
+@implementation AsyncCommDelegate {
+}
+
+-(void)rfcommChannelOpenComplete:(IOBluetoothRFCOMMChannel *)rfcommChannel status:(IOReturn)error
+{
+    
+    if ( error != kIOReturnSuccess ) {
+        fprintf(stderr,"Error - could not open the RFCOMM channel. Error code = %08x.\n",error);
+        return;
+    }
+    else{
+        fprintf(stderr,"Connected. Yeah!\n");
+    }
+    
+}
+
+-(void)rfcommChannelData:(IOBluetoothRFCOMMChannel *)rfcommChannel data:(void *)dataPointer length:(size_t)dataLength
+{
+    NSString  *message = [[NSString alloc] initWithBytes:dataPointer length:dataLength encoding:NSUTF8StringEncoding];
+    if (delegateCPP->isInitialising()) {
+        if (delegateCPP->recBuffer) {
+            delete delegateCPP->recBuffer;
+        }
+        delegateCPP->recBuffer = new char[message.length+2];
+        strcpy(delegateCPP->recBuffer,[message UTF8String]);
+    } else {
+        delegateCPP->processRawAttysData([message UTF8String]);
+    }
+}
+
+
+@end
+
+
+void AttysComm::getReceivedData(char* buf, int maxlen) {
+    while ((!recBuffer) && doRun) {
+        [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1]];
+    }
+    if (recBuffer) {
+        strncpy(buf,recBuffer,maxlen);
+        delete recBuffer;
+        recBuffer = NULL;
+    } else {
+        strncpy(buf,"",maxlen);
+    }
+}
+
+
+int AttysComm::sendBT(const char* dataToSend)
+{
+    fprintf(stderr,"Sending Message\n");
+    if (!rfcommchannel) return kIOReturnError;
+    return [(__bridge IOBluetoothRFCOMMChannel*)rfcommchannel writeSync:(void*)dataToSend length:strlen(dataToSend)];
+}
+
+
 void AttysComm::connect() {
     IOBluetoothDevice *device = (IOBluetoothDevice *)btAddr;
     IOBluetoothSDPUUID *sppServiceUUID = [IOBluetoothSDPUUID uuid16:kBluetoothSDPUUID16ServiceClassSerialPort];
@@ -27,42 +90,33 @@ void AttysComm::connect() {
 
 
 void AttysComm::closeSocket() {
-#ifdef __linux__ 
-	shutdown(btsocket, SHUT_RDWR);
-	close(btsocket);
-#elif _WIN32
-	shutdown(btsocket, SD_BOTH);
-	closesocket(btsocket);
-#else
-#endif
+    if (!rfcommchannel) return;
+    IOBluetoothRFCOMMChannel *chan = (__bridge IOBluetoothRFCOMMChannel*) rfcommchannel;
+    [chan closeChannel];
+    fprintf(stderr,"closing");
 }
 
 
-void AttysComm::sendSyncCommand(const char *message, int waitForOK) {
+void AttysComm::sendSyncCommand(const char *msg, int waitForOK) {
 	char cr[] = "\n";
 	int ret = 0;
 	// 10 attempts
 	for (int k = 0; k < 10; k++) {
-		fprintf(stderr,"Sending: %s", message);
-		ret = send(btsocket, message, (int)strlen(message), 0);
-		if (ret < 0) {
+		fprintf(stderr,"Sending: %s", msg);
+		ret = sendBT(msg);
+		if (kIOReturnSuccess != ret) {
 			if (attysCommMessage) {
 				attysCommMessage->hasMessage(errno, "message transmit error");
 			}
 		}
-		send(btsocket, cr, (int)strlen(cr), 0);
+		sendBT(cr);
 		if (!waitForOK) {
 			return;
 		}
 		for (int i = 0; i < 100; i++) {
 			char linebuffer[8192];
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
-			ret = recv(btsocket, linebuffer, 8191, 0);
-			if (ret < 0) {
-				if (attysCommMessage) {
-					attysCommMessage->hasMessage(errno, "could receive OK");
-				}
-			}
+			getReceivedData(linebuffer, 8191);
 			if ((ret > 2) && (ret < 5)) {
 				linebuffer[ret] = 0;
 				//fprintf(stderr,">>%s<<\n",linebuffer);
@@ -84,7 +138,7 @@ void AttysComm::sendInit() {
 	initialising = 1;
 	strcpy(inbuffer, "");
 	char rststr[] = "\n\n\n\n\r";
-	send(btsocket, rststr, (int)strlen(rststr), 0);
+	sendBT(rststr);
 
 	// everything platform independent
 	sendInitCommandsToAttys();
@@ -96,37 +150,50 @@ void AttysComm::sendInit() {
 
 
 void AttysComm::run() {
-	char recvbuffer[8192];
+    IOBluetoothDevice *device = (IOBluetoothDevice *)btAddr;
+    IOBluetoothRFCOMMChannel *chan = (__bridge IOBluetoothRFCOMMChannel*) rfcommchannel;
+    IOBluetoothSDPUUID *sppServiceUUID = [IOBluetoothSDPUUID uuid16:kBluetoothSDPUUID16ServiceClassSerialPort];
+    IOBluetoothSDPServiceRecord     *sppServiceRecord = [device getServiceRecordForUUID:sppServiceUUID];
+    UInt8 rfcommChannelID;
+    [sppServiceRecord getRFCOMMChannelID:&rfcommChannelID];
+
+    AsyncCommDelegate* asyncCommDelegate = [[AsyncCommDelegate alloc] init];
+    asyncCommDelegate->delegateCPP = this;
+    
+    if ( [device openRFCOMMChannelAsync:&chan withChannelID:rfcommChannelID delegate:asyncCommDelegate] != kIOReturnSuccess ) {
+        fprintf(stderr,"Fatal - could not open the rfcomm.\n");
+        return;
+    }
+    
+    doRun = 1;
 
 	sendInit();
-
-	doRun = 1;
 
 	if (attysCommMessage) {
 		attysCommMessage->hasMessage(MESSAGE_RECEIVING_DATA, "Connected");
 	}
 
 	watchdogCounter = TIMEOUT_IN_SECS * getSamplingRateInHz();
-	watchdog = new std::thread(AttysComm::watchdogThread, this);
+	// watchdog = new std::thread(AttysComm::watchdogThread, this);
 
-	// Keep listening to the InputStream until an exception occurs
 	while (doRun) {
-
-		while (initialising && doRun) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-		}
-		int ret = recv(btsocket, recvbuffer, sizeof(recvbuffer), 0);
-		if (ret < 0) {
-			if (attysCommMessage) {
-				attysCommMessage->hasMessage(errno, "data reception error");
-			}
-		}
-		if (ret > 0) {
-			processRawAttysData(recvbuffer, ret);
-		}
+        [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1]];
 	}
 
 	watchdog->join();
 	delete watchdog;
 	watchdog = NULL;
 };
+
+
+unsigned char* AttysComm::getBluetoothBinaryAdress() {
+    IOBluetoothDevice *device = (IOBluetoothDevice *)btAddr;
+    return (unsigned char*)[device getAddress];
+}
+
+
+void AttysComm::getBluetoothAdressString(char* s) {
+    IOBluetoothDevice *device = (IOBluetoothDevice *)btAddr;
+    strcpy(s,[device.addressString UTF8String]);
+}
+

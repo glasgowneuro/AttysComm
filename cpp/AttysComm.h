@@ -125,7 +125,16 @@ private:
 
 	//////////////////
 	// mac
+#ifdef __APPLE__
+private:
+        int sendBT(const char* dataToSend);
 	void* rfcommDevice = NULL;
+	void *rfcommchannel = NULL;
+	AttysComm* delegateCPP = NULL;
+public:
+	char* recBuffer = NULL;
+	void getReceivedData(char* buf, int maxlen);
+#endif
 
 
 };

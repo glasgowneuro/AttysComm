@@ -180,9 +180,8 @@ void AttysCommBase::start() {
 }
 
 
-void AttysCommBase::processRawAttysData(char* recvbuffer, int ret) {
+void AttysCommBase::processRawAttysData(const char* recvbuffer) {
 	watchdogCounter = TIMEOUT_IN_SECS;
-	recvbuffer[ret] = 0;
 	int nTrans = 0;
 	char* lf = nullptr;
 	strcat(inbuffer, recvbuffer);

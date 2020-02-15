@@ -167,7 +167,8 @@ void AttysComm::run() {
 			}
 		}
 		if (ret > 0) {
-			processRawAttysData(recvbuffer, ret);
+			recvbuffer[ret] = 0;
+			processRawAttysData(recvbuffer);
 		}
 	}
 
