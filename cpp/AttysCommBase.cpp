@@ -172,14 +172,6 @@ void AttysCommBase::receptionTimeout() {
 }
 
 
-void AttysCommBase::start() {
-	if (mainThread) {
-		return;
-	}
-	mainThread = new std::thread(AttysCommBase::execMainThread, this);
-}
-
-
 void AttysCommBase::processRawAttysData(const char* recvbuffer) {
 	watchdogCounter = TIMEOUT_IN_SECS;
 	int nTrans = 0;

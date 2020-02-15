@@ -27,10 +27,12 @@
     
     if ( error != kIOReturnSuccess ) {
         fprintf(stderr,"Error - could not open the RFCOMM channel. Error code = %08x.\n",error);
+        delegateCPP->setConnected(0);
         return;
     }
     else{
         fprintf(stderr,"Connected. Yeah!\n");
+        delegateCPP->setConnected(1);
     }
     
 }
@@ -54,13 +56,14 @@
 
 
 void AttysComm::getReceivedData(char* buf, int maxlen) {
-    while ((!recBuffer) && doRun) {
-        [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1]];
+    while ((!isConnected) && (doRun)) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     if (recBuffer) {
         strncpy(buf,recBuffer,maxlen);
         delete recBuffer;
         recBuffer = NULL;
+        fprintf(stderr,"Received:%s\n",buf);
     } else {
         strncpy(buf,"",maxlen);
     }
@@ -70,7 +73,11 @@ void AttysComm::getReceivedData(char* buf, int maxlen) {
 int AttysComm::sendBT(const char* dataToSend)
 {
     fprintf(stderr,"Sending Message\n");
-    if (!rfcommchannel) return kIOReturnError;
+//    if (!rfcommchannel) return kIOReturnError;
+//    while ((!isConnected) && (doRun)) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+//    }
+    fprintf(stderr,"writesync\n");
     return [(__bridge IOBluetoothRFCOMMChannel*)rfcommchannel writeSync:(void*)dataToSend length:strlen(dataToSend)];
 }
 
@@ -101,7 +108,7 @@ void AttysComm::sendSyncCommand(const char *msg, int waitForOK) {
 	char cr[] = "\n";
 	int ret = 0;
 	// 10 attempts
-	for (int k = 0; k < 10; k++) {
+    while (doRun) {
 		fprintf(stderr,"Sending: %s", msg);
 		ret = sendBT(msg);
 		if (kIOReturnSuccess != ret) {
@@ -117,10 +124,9 @@ void AttysComm::sendSyncCommand(const char *msg, int waitForOK) {
 			char linebuffer[8192];
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			getReceivedData(linebuffer, 8191);
+            ret = strlen(linebuffer);
 			if ((ret > 2) && (ret < 5)) {
-				linebuffer[ret] = 0;
-				//fprintf(stderr,">>%s<<\n",linebuffer);
-				linebuffer[ret] = 0;
+				fprintf(stderr,">>%s<<\n",linebuffer);
 				if (strstr(linebuffer, "OK")) {
 					fprintf(stderr, " -- OK received\n");
 					return;
@@ -128,7 +134,7 @@ void AttysComm::sendSyncCommand(const char *msg, int waitForOK) {
 			}
 		}
 		fprintf(stderr, " -- no OK received!\n");
-	}
+    }
 }
 
 
@@ -148,8 +154,25 @@ void AttysComm::sendInit() {
 	fprintf(stderr,"Init finished. Waiting for data.\n");
 }
 
+void AttysComm::start() {
+    if (mainThread) {
+        return;
+    }
+    mainThread = new std::thread(AttysCommBase::execMainThread, this);
+    
+    doRun = 1;
+    
+    sendInit();
+
+    if (attysCommMessage) {
+        attysCommMessage->hasMessage(MESSAGE_RECEIVING_DATA, "Connected");
+    }
+}
 
 void AttysComm::run() {
+	watchdogCounter = TIMEOUT_IN_SECS * getSamplingRateInHz();
+	// watchdog = new std::thread(AttysComm::watchdogThread, this);
+    
     IOBluetoothDevice *device = (IOBluetoothDevice *)btAddr;
     IOBluetoothRFCOMMChannel *chan = (__bridge IOBluetoothRFCOMMChannel*) rfcommchannel;
     IOBluetoothSDPUUID *sppServiceUUID = [IOBluetoothSDPUUID uuid16:kBluetoothSDPUUID16ServiceClassSerialPort];
@@ -165,24 +188,19 @@ void AttysComm::run() {
         return;
     }
     
+    rfcommchannel = (__bridge void*) chan;
+    
     doRun = 1;
-
-	sendInit();
-
-	if (attysCommMessage) {
-		attysCommMessage->hasMessage(MESSAGE_RECEIVING_DATA, "Connected");
-	}
-
-	watchdogCounter = TIMEOUT_IN_SECS * getSamplingRateInHz();
-	// watchdog = new std::thread(AttysComm::watchdogThread, this);
 
 	while (doRun) {
         [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1]];
 	}
 
-	watchdog->join();
-	delete watchdog;
-	watchdog = NULL;
+    if (watchdog) {
+        watchdog->join();
+        delete watchdog;
+        watchdog = NULL;
+    }
 };
 
 

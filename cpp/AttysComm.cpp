@@ -38,6 +38,13 @@ void AttysComm::connect() {
 	throw "Connect failed";
 }
 
+void AttysComm::start() {
+	if (mainThread) {
+		return;
+	}
+	mainThread = new std::thread(AttysCommBase::execMainThread, this);
+}
+
 
 void AttysComm::closeSocket() {
 #ifdef __linux__ 

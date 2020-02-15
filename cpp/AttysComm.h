@@ -93,6 +93,8 @@ public:
 
 	virtual void sendInit();
 
+	virtual void start();
+
 public:
 	// returns an array of 14 bytes
     unsigned char* getBluetoothBinaryAdress();
@@ -127,7 +129,7 @@ private:
 	// mac
 #ifdef __APPLE__
 private:
-        int sendBT(const char* dataToSend);
+    int sendBT(const char* dataToSend);
 	void* rfcommDevice = NULL;
 	void *rfcommchannel = NULL;
 	AttysComm* delegateCPP = NULL;

@@ -335,8 +335,9 @@ public:
 	virtual void connect() = 0;
 
 	//////////////////////////////////////////////////////////////////////////
-	// starts the data acquisition
-	virtual void start();
+	// starts the data acquisition by starting the main thread
+	// and sending possibly init commands.
+	virtual void start() = 0;
 
 	//////////////////////////////////////////////////////////////////////////
 	// closes socket safely
@@ -347,6 +348,10 @@ public:
 	int hasActiveConnection() {
 		return isConnected;
 	}
+    
+    void setConnected(int c) {
+        isConnected = c;
+    }
 
 	/////////////////////////////////////////////////
 	// ringbuffer keeping data for chunk-wise plotting
