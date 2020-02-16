@@ -490,7 +490,7 @@ protected:
 		}
 	}
 
-	void receptionTimeout();
+	virtual void receptionTimeout() = 0;
 
 public:
 	void processRawAttysData(const char* data);

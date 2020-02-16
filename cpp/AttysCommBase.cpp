@@ -143,35 +143,6 @@ void AttysCommBase::sendInitCommandsToAttys() {
 	sendSyncCommand("x=1\n", 0);
 }
 
-void AttysCommBase::receptionTimeout() {
-	_RPT0(0, "Timeout.\n");
-	if (attysCommMessage) {
-		attysCommMessage->hasMessage(MESSAGE_TIMEOUT, "reception timeout to Attys");
-	}
-	initialising = 1;
-	closeSocket();
-	while (doRun) {
-		try {
-			connect();
-			break;
-		}
-		catch (const char *) {
-			_RPT0(0, "Reconnect failed. Sleeping for 1 sec.\n");
-			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-		}
-	}
-	if (!doRun) {
-		return;
-	}
-	sendInit();
-	initialising = 0;
-	if (attysCommMessage) {
-		attysCommMessage->hasMessage(MESSAGE_RECONNECTED, "reconnected to Attys");
-	}
-	_RPT0(0, "Reconnected.\n");
-}
-
-
 void AttysCommBase::processRawAttysData(const char* recvbuffer) {
 	watchdogCounter = TIMEOUT_IN_SECS;
 	int nTrans = 0;

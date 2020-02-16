@@ -95,6 +95,8 @@ public:
 
 	virtual void start();
 
+	virtual void receptionTimeout();
+
 public:
 	// returns an array of 14 bytes
     unsigned char* getBluetoothBinaryAdress();
