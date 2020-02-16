@@ -159,7 +159,7 @@ void AttysComm::run() {
 	}
 
 	watchdogCounter = TIMEOUT_IN_SECS * getSamplingRateInHz();
-	watchdog = new std::thread(AttysComm::watchdogThread, this);
+	std::thread watchdog(AttysComm::watchdogThread, this);
 
 	// Keep listening to the InputStream until an exception occurs
 	while (doRun) {
@@ -179,9 +179,7 @@ void AttysComm::run() {
 		}
 	}
 
-	watchdog->join();
-	delete watchdog;
-	watchdog = NULL;
+	watchdog.join();
 };
 
 

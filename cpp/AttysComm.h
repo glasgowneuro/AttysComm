@@ -135,9 +135,11 @@ private:
 	void* rfcommDevice = NULL;
 	void *rfcommchannel = NULL;
 	AttysComm* delegateCPP = NULL;
+	int tryToConnect();
 public:
 	char* recBuffer = NULL;
 	void getReceivedData(char* buf, int maxlen);
+	int connectError = 0;
 #endif
 
 

@@ -440,7 +440,6 @@ protected:
 	int watchdogCounter = 0;
 	int initialising = 1;
 	std::thread* mainThread = NULL;
-	std::thread* watchdog = NULL;
 
 	static void execMainThread(AttysCommBase *thr) {
 		thr->run();
