@@ -36,6 +36,7 @@ if(APPLE)
 set(ios_frameworks
   CoreBluetooth
   IOBluetooth
+  Foundation
 )
 
 foreach (FRAMEWORK_NAME ${ios_frameworks})

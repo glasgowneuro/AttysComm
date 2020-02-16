@@ -410,10 +410,10 @@ public:
 
 	virtual void getBluetoothAdressString(char* s) = 0;
 
+	AttysCommMessage* attysCommMessage = NULL;
 protected:
 	///////////////////////////////////////////////////////
 	// from here it's private
-	AttysCommMessage* attysCommMessage = NULL;
 	AttysCommListener* callbackInterface = NULL;
 	int doRun = 0;
 	// ringbuffer
@@ -474,13 +474,17 @@ protected:
 
 	static void watchdogThread(AttysCommBase* attysCommBase) {
 		while (attysCommBase->doRun) {
-			attysCommBase->watchdogCounter--;
-			if (attysCommBase->watchdogCounter < 1) {
-				attysCommBase->receptionTimeout();
-				attysCommBase->watchdogCounter = 0;
-			}
-			// wait for 1 sec
-			for (int i = 0; (i < 10) && attysCommBase->doRun; i++) {
+			if (!(attysCommBase->initialising)) {
+				attysCommBase->watchdogCounter--;
+				if (attysCommBase->watchdogCounter < 1) {
+					attysCommBase->receptionTimeout();
+					attysCommBase->watchdogCounter = 0;
+				}
+				// wait for 1 sec
+				for (int i = 0; (i < 10) && attysCommBase->doRun; i++) {
+					std::this_thread::sleep_for(std::chrono::milliseconds(100));
+				}
+			} else {
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}

@@ -14,7 +14,7 @@
 
 
 @interface AsyncCommDelegate : NSObject <IOBluetoothRFCOMMChannelDelegate> {
-    @public
+@public
     AttysComm* delegateCPP;
 }
 @end
@@ -26,14 +26,18 @@
 {
     
     if ( error != kIOReturnSuccess ) {
-        fprintf(stderr,"Error - could not open the RFCOMM channel. Error code = %08x.\n",error);
+        _RPT1(0,"Error - could not open the RFCOMM channel. Error code = %08x.\n",error);
         delegateCPP->setConnected(0);
+        throw "Error";
         return;
     }
     else{
-        fprintf(stderr,"Connected. Yeah!\n");
+        _RPT0(0,"Connected.\n");
         delegateCPP->setConnected(1);
-    }
+        if (delegateCPP->attysCommMessage) {
+            delegateCPP->attysCommMessage->hasMessage(delegateCPP->MESSAGE_RECEIVING_DATA, "Connected");
+        }
+}
     
 }
 
@@ -63,7 +67,7 @@ void AttysComm::getReceivedData(char* buf, int maxlen) {
         strncpy(buf,recBuffer,maxlen);
         delete recBuffer;
         recBuffer = NULL;
-        fprintf(stderr,"Received:%s\n",buf);
+        _RPT1(0,"Received:%s\n",buf);
     } else {
         strncpy(buf,"",maxlen);
     }
@@ -72,12 +76,6 @@ void AttysComm::getReceivedData(char* buf, int maxlen) {
 
 int AttysComm::sendBT(const char* dataToSend)
 {
-    fprintf(stderr,"Sending Message\n");
-//    if (!rfcommchannel) return kIOReturnError;
-//    while ((!isConnected) && (doRun)) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-//    }
-    fprintf(stderr,"writesync\n");
     return [(__bridge IOBluetoothRFCOMMChannel*)rfcommchannel writeSync:(void*)dataToSend length:strlen(dataToSend)];
 }
 
@@ -93,6 +91,19 @@ void AttysComm::connect() {
     if ( [sppServiceRecord getRFCOMMChannelID:&rfcommChannelID] != kIOReturnSuccess ) {
         throw "Not an SPP/RFCOMM device.\n";
     }
+    if (mainThread) {
+        doRun = 0;
+        mainThread->join();
+        delete mainThread;
+    }
+    mainThread = new std::thread(AttysCommBase::execMainThread, this);
+    doRun = 1;
+    while ((!isConnected) && (doRun)) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    if (!doRun) {
+        throw "Connection failed";
+    }
 }
 
 
@@ -100,107 +111,102 @@ void AttysComm::closeSocket() {
     if (!rfcommchannel) return;
     IOBluetoothRFCOMMChannel *chan = (__bridge IOBluetoothRFCOMMChannel*) rfcommchannel;
     [chan closeChannel];
-    fprintf(stderr,"closing");
+    _RPT0(0,"closing");
 }
 
 
 void AttysComm::sendSyncCommand(const char *msg, int waitForOK) {
-	char cr[] = "\n";
-	int ret = 0;
-	// 10 attempts
+    char cr[] = "\n";
+    int ret = 0;
+    // 10 attempts
     while (doRun) {
-		fprintf(stderr,"Sending: %s", msg);
-		ret = sendBT(msg);
-		if (kIOReturnSuccess != ret) {
-			if (attysCommMessage) {
-				attysCommMessage->hasMessage(errno, "message transmit error");
-			}
-		}
-		sendBT(cr);
-		if (!waitForOK) {
-			return;
-		}
-		for (int i = 0; i < 100; i++) {
-			char linebuffer[8192];
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
-			getReceivedData(linebuffer, 8191);
+        _RPT1(0,"Sending: %s", msg);
+        ret = sendBT(msg);
+        if (kIOReturnSuccess != ret) {
+            if (attysCommMessage) {
+                attysCommMessage->hasMessage(errno, "message transmit error");
+            }
+        }
+        sendBT(cr);
+        if (!waitForOK) {
+            return;
+        }
+        for (int i = 0; i < 100; i++) {
+            char linebuffer[8192];
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            getReceivedData(linebuffer, 8191);
             ret = strlen(linebuffer);
-			if ((ret > 2) && (ret < 5)) {
-				fprintf(stderr,">>%s<<\n",linebuffer);
-				if (strstr(linebuffer, "OK")) {
-					fprintf(stderr, " -- OK received\n");
-					return;
-				}
-			}
-		}
-		fprintf(stderr, " -- no OK received!\n");
+            if ((ret > 2) && (ret < 5)) {
+                _RPT1(0,">>%s<<\n",linebuffer);
+                if (strstr(linebuffer, "OK")) {
+                    _RPT0(0, " -- OK received\n");
+                    return;
+                }
+            }
+        }
+        _RPT0(0, " -- no OK received!\n");
     }
 }
 
 
 void AttysComm::sendInit() {
-	fprintf(stderr,"Sending Init\n");
-	// flag to prevent the data receiver to mess it up!
-	initialising = 1;
-	strcpy(inbuffer, "");
-	char rststr[] = "\n\n\n\n\r";
-	sendBT(rststr);
-
-	// everything platform independent
-	sendInitCommandsToAttys();
-
-	strcpy(inbuffer, "");
-	initialising = 0;
-	fprintf(stderr,"Init finished. Waiting for data.\n");
+    _RPT0(0,"Sending Init\n");
+    // flag to prevent the data receiver to mess it up!
+    initialising = 1;
+    strcpy(inbuffer, "");
+    char rststr[] = "\n\n\n\n\r";
+    sendBT(rststr);
+    
+    // everything platform independent
+    sendInitCommandsToAttys();
+    
+    strcpy(inbuffer, "");
+    initialising = 0;
+    _RPT0(0,"Init finished. Waiting for data.\n");
 }
 
 void AttysComm::start() {
-    if (mainThread) {
-        return;
-    }
-    mainThread = new std::thread(AttysCommBase::execMainThread, this);
-    
-    doRun = 1;
-    
     sendInit();
-
-    if (attysCommMessage) {
-        attysCommMessage->hasMessage(MESSAGE_RECEIVING_DATA, "Connected");
-    }
 }
 
 void AttysComm::run() {
-	watchdogCounter = TIMEOUT_IN_SECS * getSamplingRateInHz();
-	// watchdog = new std::thread(AttysComm::watchdogThread, this);
-    
     IOBluetoothDevice *device = (IOBluetoothDevice *)btAddr;
     IOBluetoothRFCOMMChannel *chan = (__bridge IOBluetoothRFCOMMChannel*) rfcommchannel;
     IOBluetoothSDPUUID *sppServiceUUID = [IOBluetoothSDPUUID uuid16:kBluetoothSDPUUID16ServiceClassSerialPort];
     IOBluetoothSDPServiceRecord     *sppServiceRecord = [device getServiceRecordForUUID:sppServiceUUID];
     UInt8 rfcommChannelID;
     [sppServiceRecord getRFCOMMChannelID:&rfcommChannelID];
-
+    
     AsyncCommDelegate* asyncCommDelegate = [[AsyncCommDelegate alloc] init];
     asyncCommDelegate->delegateCPP = this;
     
     if ( [device openRFCOMMChannelAsync:&chan withChannelID:rfcommChannelID delegate:asyncCommDelegate] != kIOReturnSuccess ) {
-        fprintf(stderr,"Fatal - could not open the rfcomm.\n");
+        _RPT0(0,"Fatal - could not open the rfcomm.\n");
         return;
     }
     
     rfcommchannel = (__bridge void*) chan;
     
     doRun = 1;
+    
+    watchdogCounter = TIMEOUT_IN_SECS * getSamplingRateInHz();
+    // watchdog = new std::thread(AttysComm::watchdogThread, this);
 
-	while (doRun) {
-        [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1]];
-	}
-
-    if (watchdog) {
-        watchdog->join();
-        delete watchdog;
-        watchdog = NULL;
+    try {
+        while (doRun) {
+            [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1]];
+        }
     }
+    catch (const char *msg) {
+        doRun = 0;
+        if (watchdog) {
+            watchdog->join();
+            delete watchdog;
+            watchdog = NULL;
+        }
+    }
+    
+    doRun = 0;
 };
 
 

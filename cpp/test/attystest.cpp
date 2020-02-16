@@ -7,7 +7,7 @@ int main (int,char**)
 	// scan for Attys
 	attysScan.scan();
 	if (attysScan.nAttysDevices < 1) {
-		fprintf(stderr,"No devices found.\n");
+		_RPT0(0,"No devices found.\n");
 		return 0;
 	}
 	// start the data acquisition in the background
