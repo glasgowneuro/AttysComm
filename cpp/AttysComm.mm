@@ -44,15 +44,14 @@
 
 -(void)rfcommChannelData:(IOBluetoothRFCOMMChannel *)rfcommChannel data:(void *)dataPointer length:(size_t)dataLength
 {
-    NSString  *message = [[NSString alloc] initWithBytes:dataPointer length:dataLength encoding:NSUTF8StringEncoding];
     if (delegateCPP->isInitialising()) {
         if (delegateCPP->recBuffer) {
             delete delegateCPP->recBuffer;
         }
-        delegateCPP->recBuffer = new char[message.length+2];
-        strcpy(delegateCPP->recBuffer,[message UTF8String]);
+        delegateCPP->recBuffer = new char[dataLength+2];
+        strcpy(delegateCPP->recBuffer,(char*)dataPointer);
     } else {
-        delegateCPP->processRawAttysData([message UTF8String]);
+        delegateCPP->processRawAttysData((char*)dataPointer);
     }
 }
 
@@ -226,7 +225,6 @@ void AttysComm::run() {
     _RPT0(0, "Closing connection.\n");
     [device closeConnection];
     _RPT0(0, "Connection closed.\n");
-    [asyncCommDelegate release];
 }
 
 
