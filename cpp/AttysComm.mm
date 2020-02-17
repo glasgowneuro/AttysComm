@@ -48,10 +48,14 @@
         if (delegateCPP->recBuffer) {
             delete delegateCPP->recBuffer;
         }
-        delegateCPP->recBuffer = new char[dataLength+2];
-        strcpy(delegateCPP->recBuffer,(char*)dataPointer);
+        delegateCPP->recBuffer = new char[dataLength+1];
+        strncpy(delegateCPP->recBuffer,(char*)dataPointer,dataLength);
+        delegateCPP->recBuffer[dataLength] = 0;
     } else {
-        delegateCPP->processRawAttysData((char*)dataPointer);
+        char tmp[dataLength+1];
+        strncpy(tmp,(char*)dataPointer,dataLength);
+        tmp[dataLength] = 0;
+        delegateCPP->processRawAttysData(tmp);
     }
 }
 
