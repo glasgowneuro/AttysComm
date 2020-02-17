@@ -16,6 +16,7 @@ if platform == "linux" or platform == "linux2":
 	attyscomm_module = Extension('_pyattyscomm',
 							sources=['pyattyscomm.i',
                                                                  'AttysComm.cpp',
+                                                                 'AttysCommBase.cpp',
                                                                  'AttysScan.cpp',
                                                                  'attyscomm/base64.cpp'
                                                         ],
@@ -29,6 +30,16 @@ elif platform == "win32":
 							extra_compile_args=['/DWIN32_LEAN_AND_MEAN'],
                                                         libraries=['ws2_32'],
 							extra_link_args=['Release\\attyscomm_static.lib'],
+                                                        swig_opts=['-c++','-py3','-threads'],
+							)
+elif platform == "darwin":
+	attyscomm_module = Extension('_pyattyscomm',
+							sources=['pyattyscomm.i'],
+							extra_compile_args=['-D__APPLE__','-std=c++11','-DSOCKET=int'],
+							extra_link_args=[os.getcwd()+'/libattyscomm_static.a',
+                                                                         '-framework','CoreBluetooth',
+                                                                         '-framework','IOBluetooth',
+                                                                         '-framework','Foundation'],
                                                         swig_opts=['-c++','-py3','-threads'],
 							)
 

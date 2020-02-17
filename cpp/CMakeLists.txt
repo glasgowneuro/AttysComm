@@ -68,6 +68,8 @@ if(UNIX)
 
   if(APPLE)
     target_link_libraries(attyscomm ${linked_ios_frameworks})
+    set_property (TARGET attyscomm APPEND_STRING PROPERTY 
+                  COMPILE_FLAGS "-fobjc-arc")
   endif(APPLE)
   
 endif(UNIX)
@@ -83,6 +85,8 @@ endif(WIN32)
 
 if(APPLE)
     target_link_libraries(attyscomm_static ${linked_ios_frameworks})
+    set_property (TARGET attyscomm_static APPEND_STRING PROPERTY 
+                  COMPILE_FLAGS "-fobjc-arc")
 endif(APPLE)
 
 target_include_directories(attyscomm_static PRIVATE attyscomm)

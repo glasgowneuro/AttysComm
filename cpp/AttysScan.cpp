@@ -11,12 +11,10 @@ AttysScan attysScan;
  * Returns zero on success
  **/
 int AttysScan::scan(int maxAttysDevs) {
-	dev = new SOCKET[maxAttysDevs];
 	attysName = new char*[maxAttysDevs];
 	attysComm = new AttysComm*[maxAttysDevs];
 	assert(attysComm != nullptr);
 	for (int devNo = 0; devNo < maxAttysDevs; devNo++) {
-		dev[devNo] = 0;
 		attysComm[devNo] = nullptr;
 		attysName[devNo] = new char[256];
 		attysName[devNo][0] = 0;

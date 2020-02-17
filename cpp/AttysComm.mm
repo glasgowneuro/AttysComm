@@ -178,7 +178,7 @@ void AttysComm::start() {
 }
 
 void AttysComm::run() {
-    IOBluetoothDevice *device = (IOBluetoothDevice *)btAddr;
+    IOBluetoothDevice *device = (__bridge IOBluetoothDevice *)btAddr;
     _RPT0(0,"Getting service UUID.\n");
     IOBluetoothSDPUUID *sppServiceUUID = [IOBluetoothSDPUUID uuid16:kBluetoothSDPUUID16ServiceClassSerialPort];
     _RPT0(0,"Getting service record.\n");
@@ -260,13 +260,13 @@ void AttysComm::receptionTimeout() {
 
 
 unsigned char* AttysComm::getBluetoothBinaryAdress() {
-    IOBluetoothDevice *device = (IOBluetoothDevice *)btAddr;
+    IOBluetoothDevice *device = (__bridge IOBluetoothDevice *)btAddr;
     return (unsigned char*)[device getAddress];
 }
 
 
 void AttysComm::getBluetoothAdressString(char* s) {
-    IOBluetoothDevice *device = (IOBluetoothDevice *)btAddr;
+    IOBluetoothDevice *device = (__bridge IOBluetoothDevice *)btAddr;
     strcpy(s,[device.addressString UTF8String]);
 }
 
