@@ -32,6 +32,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Scanner;
 import java.util.Set;
@@ -130,6 +131,8 @@ public class AttysComm {
     public byte getAdc_samplingrate_index() {
         return adc_rate_index;
     }
+
+    private boolean highSpeed = false;
 
     ///////////////////////////////////////////////////////////////////////
     // Full data set or just ADC channels?
@@ -557,13 +560,14 @@ public class AttysComm {
                 }
             }
             try {
+                assert mmSocket != null;
                 mmInStream = mmSocket.getInputStream();
                 mmOutStream = mmSocket.getOutputStream();
-                bufferedReader = new BufferedReader(new InputStreamReader(mmInStream, "US-ASCII"));
+                bufferedReader = new BufferedReader(new InputStreamReader(mmInStream, StandardCharsets.US_ASCII));
             } catch (Exception es) {
                 try {
                     mmSocket.close();
-                } catch (Exception sc2) {
+                } catch (Exception ignored) {
                 }
                 mmSocket = null;
                 if (Log.isLoggable(TAG, Log.VERBOSE)) {
@@ -697,6 +701,7 @@ public class AttysComm {
 
         private synchronized void sendSamplingRate() throws IOException {
             sendSyncCommand("r=" + adc_rate_index);
+            highSpeed = (adc_rate_index == ADC_RATE_500Hz);
         }
 
         private synchronized void sendFullscaleAccelRange() throws IOException {
@@ -769,6 +774,204 @@ public class AttysComm {
             doRun = false;
         }
 
+        public void decodeStandardSpeedPacket(String oneLine) {
+            int nTrans = 1;
+            // we have a real sample
+            try {
+                final byte[] raw = Base64.decode(oneLine, Base64.DEFAULT);
+
+                for (int i = 0; i < 2; i++) {
+                    long v = (raw[i * 3] & 0xff)
+                            | ((raw[i * 3 + 1] & 0xff) << 8)
+                            | ((raw[i * 3 + 2] & 0xff) << 16);
+                    data[INDEX_Analogue_channel_1 + i] = v;
+                }
+
+                sample[INDEX_GPIO0] = (raw[6] & 32) == 0 ? 0:1;
+                sample[INDEX_GPIO1] = (raw[6] & 64) == 0 ? 0:1;
+                sample[INDEX_CHARGING] = (raw[6] & 0x80) == 0 ? 0:1;
+                // Log.d(TAG,""+sample[INDEX_CHARGING]);
+
+                if (fullOrPartialData == FULL_DATA) {
+                    for (int i = 0; i < 6; i++) {
+                        long v = (raw[8 + i * 2] & 0xff)
+                                | ((raw[8 + i * 2 + 1] & 0xff) << 8);
+                        data[i] = v;
+                    }
+                }
+
+                // check that the timestamp is the expected one
+                byte ts = 0;
+                nTrans = 1;
+                if (raw.length > 7) {
+                    // Log.d(TAG,"tbcorr");
+                    ts = raw[7];
+                    if ((ts - expectedTimestamp) > 0) {
+                        if (correctTimestampDifference) {
+                            nTrans = 1 + (ts - expectedTimestamp);
+                            if (Log.isLoggable(TAG, Log.WARN)) {
+                                Log.w(TAG, String.format("Timestamp=%s,expected=%d",
+                                        ts, expectedTimestamp));
+                            }
+                        } else {
+                            correctTimestampDifference = true;
+                        }
+                    }
+                }
+                // update timestamp
+                expectedTimestamp = ++ts;
+
+            } catch (Exception e) {
+                // this is triggered if the base64 is too short or any data is too short
+                // this leads to data processed from the previous sample instead
+                if (Log.isLoggable(TAG, Log.WARN)) {
+                    Log.w(TAG, "reception error: " + oneLine, e);
+                }
+                expectedTimestamp++;
+            }
+
+            // acceleration
+            for (int i = AttysComm.INDEX_Acceleration_X;
+                 i <= AttysComm.INDEX_Acceleration_Z; i++) {
+                float norm = 0x8000;
+                try {
+                    sample[i] = ((float) data[i] - norm) / norm *
+                            getAccelFullScaleRange();
+                } catch (Exception e) {
+                    if (Log.isLoggable(TAG, Log.DEBUG)) {
+                        Log.d(TAG, "Acc conv err");
+                    }
+                    sample[i] = 0;
+                }
+            }
+
+            // magnetometer
+            for (int i = AttysComm.INDEX_Magnetic_field_X;
+                 i <= AttysComm.INDEX_Magnetic_field_Z; i++) {
+                float norm = 0x8000;
+                try {
+                    sample[i] = ((float) data[i] - norm) / norm *
+                            MAG_FULL_SCALE;
+                    //Log.d(TAG,"i="+i+","+sample[i]);
+                } catch (Exception e) {
+                    if (Log.isLoggable(TAG, Log.DEBUG)) {
+                        Log.d(TAG, "Mag conv err");
+                    }
+                    sample[i] = 0;
+                }
+            }
+
+            for (int i = AttysComm.INDEX_Analogue_channel_1;
+                 i <= AttysComm.INDEX_Analogue_channel_2; i++) {
+                float norm = 0x800000;
+                try {
+                    sample[i] = ((float) data[i] - norm) / norm *
+                            ADC_REF / ADC_GAIN_FACTOR[adcGainRegister[i
+                            - AttysComm.INDEX_Analogue_channel_1]];
+                } catch (Exception e) {
+                    sample[i] = 0;
+                }
+            }
+
+            // in case a sample has been lost
+            for (int j = 0; j < nTrans; j++) {
+                if (dataListener != null) {
+                    dataListener.gotData(sampleNumber, sample);
+                }
+                System.arraycopy(sample, 0, ringBuffer[inPtr], 0, sample.length);
+                timestamp = timestamp + 1.0 / getSamplingRateInHz();
+                sampleNumber++;
+                inPtr++;
+                if (inPtr == RINGBUFFERSIZE) {
+                    inPtr = 0;
+                }
+            }
+        }
+
+        public void decodeHighSpeedPacket(String oneLine) {
+            int nTrans = 1;
+            // we have a real sample
+            try {
+                final byte[] raw = Base64.decode(oneLine, Base64.DEFAULT);
+
+                sample[INDEX_GPIO0] = (raw[12] & 32) == 0 ? 0:1;
+                sample[INDEX_GPIO1] = (raw[12] & 64) == 0 ? 0:1;
+                sample[INDEX_CHARGING] = (raw[12] & 0x80) == 0 ? 0:1;
+
+                // check that the timestamp is the expected one
+                byte ts = 0;
+                nTrans = 1;
+                ts = raw[13];
+                if ((ts - expectedTimestamp) > 0) {
+                    if (correctTimestampDifference) {
+                        nTrans = 1 + (ts - expectedTimestamp);
+                        if (Log.isLoggable(TAG, Log.WARN)) {
+                            Log.w(TAG, String.format("Timestamp=%s,expected=%d",
+                                    ts, expectedTimestamp));
+                        }
+                    } else {
+                        correctTimestampDifference = true;
+                    }
+                }
+                // update timestamp
+                expectedTimestamp = ++ts;
+
+                for(int s = 0; s < 2; s++) {
+
+                    // acceleration
+                    for (int i = 0; i < 3; i++) {
+                        float norm = 0x8000;
+                        try {
+                            long v = (raw[14 + i * 2] & 0xff)
+                                    | ((raw[14 + i * 2 + 1] & 0xff) << 8);
+                            sample[AttysComm.INDEX_Acceleration_X + i] =
+                                    ((float) v - norm) / norm * getAccelFullScaleRange();
+                        } catch (Exception e) {
+                            if (Log.isLoggable(TAG, Log.DEBUG)) {
+                                Log.d(TAG, "Acc conv err");
+                            }
+                            sample[i] = 0;
+                        }
+                    }
+
+                    for (int i = 0; i < 2; i++) {
+                        float norm = 0x800000;
+                        try {
+                            long v = (raw[s * 6 + i * 3] & 0xff)
+                                    | ((raw[s * 6 + i * 3 + 1] & 0xff) << 8)
+                                    | ((raw[s * 6 + i * 3 + 2] & 0xff) << 16);
+                            sample[AttysComm.INDEX_Analogue_channel_1 + i] =
+                                    ((float) v - norm) / norm *
+                                    ADC_REF / ADC_GAIN_FACTOR[adcGainRegister[i]];
+                        } catch (Exception e) {
+                            sample[i] = 0;
+                        }
+                    }
+                }
+
+            } catch (Exception e) {
+                // this is triggered if the base64 is too short or any data is too short
+                // this leads to data processed from the previous sample instead
+                if (Log.isLoggable(TAG, Log.WARN)) {
+                    Log.w(TAG, "reception error: " + oneLine, e);
+                }
+                expectedTimestamp++;
+            }
+
+            // in case a sample has been lost
+            for (int j = 0; j < nTrans; j++) {
+                if (dataListener != null) {
+                    dataListener.gotData(sampleNumber, sample);
+                }
+                System.arraycopy(sample, 0, ringBuffer[inPtr], 0, sample.length);
+                timestamp = timestamp + 1.0 / getSamplingRateInHz();
+                sampleNumber++;
+                inPtr++;
+                if (inPtr == RINGBUFFERSIZE) {
+                    inPtr = 0;
+                }
+            }
+        }
         public void run() {
 
             doRun = true;
@@ -779,8 +982,6 @@ public class AttysComm {
             adcGainRegister = new byte[2];
             adcGainRegister[0] = 0;
             adcGainRegister[1] = 0;
-
-            int nTrans = 1;
 
             while ((doRun) && (!isConnected)) {
                 try {
@@ -818,124 +1019,11 @@ public class AttysComm {
                         return;
                     }
                     if (!oneLine.equals("OK")) {
-                        // we have a real sample
-                        try {
-                            final byte[] raw = Base64.decode(oneLine, Base64.DEFAULT);
-
-                            for (int i = 0; i < 2; i++) {
-                                long v = (raw[i * 3] & 0xff)
-                                        | ((raw[i * 3 + 1] & 0xff) << 8)
-                                        | ((raw[i * 3 + 2] & 0xff) << 16);
-                                data[INDEX_Analogue_channel_1 + i] = v;
-                            }
-
-                            sample[INDEX_GPIO0] = (raw[6] & 32) == 0 ? 0:1;
-                            sample[INDEX_GPIO1] = (raw[6] & 64) == 0 ? 0:1;
-                            sample[INDEX_CHARGING] = (raw[6] & 0x80) == 0 ? 0:1;
-                            // Log.d(TAG,""+sample[INDEX_CHARGING]);
-
-                            if (fullOrPartialData == FULL_DATA) {
-                                for (int i = 0; i < 6; i++) {
-                                    long v = (raw[8 + i * 2] & 0xff)
-                                            | ((raw[8 + i * 2 + 1] & 0xff) << 8);
-                                    data[i] = v;
-                                }
-                            }
-
-                            /**
-                             Log.d(TAG,String.format("%d,%d,%d, %d,%d,%d, %d,%d",
-                             data[0],data[1],data[2],
-                             data[3],data[4],data[5],
-                             data[6],data[7]));
-                             **/
-
-                            // check that the timestamp is the expected one
-                            byte ts = 0;
-                            nTrans = 1;
-                            if (raw.length > 7) {
-                                // Log.d(TAG,"tbcorr");
-                                ts = raw[7];
-                                if ((ts - expectedTimestamp) > 0) {
-                                    if (correctTimestampDifference) {
-                                        nTrans = 1 + (ts - expectedTimestamp);
-                                        if (Log.isLoggable(TAG, Log.WARN)) {
-                                            Log.w(TAG, String.format("Timestamp=%s,expected=%d",
-                                                    ts, expectedTimestamp));
-                                        }
-                                    } else {
-                                        correctTimestampDifference = true;
-                                    }
-                                }
-                            }
-                            // update timestamp
-                            expectedTimestamp = ++ts;
-
-                        } catch (Exception e) {
-                            // this is triggered if the base64 is too short or any data is too short
-                            // this leads to data processed from the previous sample instead
-                            if (Log.isLoggable(TAG, Log.WARN)) {
-                                Log.w(TAG, "reception error: " + oneLine, e);
-                            }
-                            expectedTimestamp++;
+                        if (highSpeed) {
+                            decodeHighSpeedPacket(oneLine);
+                        } else {
+                            decodeStandardSpeedPacket(oneLine);
                         }
-
-                        // acceleration
-                        for (int i = AttysComm.INDEX_Acceleration_X;
-                             i <= AttysComm.INDEX_Acceleration_Z; i++) {
-                            float norm = 0x8000;
-                            try {
-                                sample[i] = ((float) data[i] - norm) / norm *
-                                        getAccelFullScaleRange();
-                            } catch (Exception e) {
-                                if (Log.isLoggable(TAG, Log.DEBUG)) {
-                                    Log.d(TAG, "Acc conv err");
-                                }
-                                sample[i] = 0;
-                            }
-                        }
-
-                        // magnetometer
-                        for (int i = AttysComm.INDEX_Magnetic_field_X;
-                             i <= AttysComm.INDEX_Magnetic_field_Z; i++) {
-                            float norm = 0x8000;
-                            try {
-                                sample[i] = ((float) data[i] - norm) / norm *
-                                        MAG_FULL_SCALE;
-                                //Log.d(TAG,"i="+i+","+sample[i]);
-                            } catch (Exception e) {
-                                if (Log.isLoggable(TAG, Log.DEBUG)) {
-                                    Log.d(TAG, "Mag conv err");
-                                }
-                                sample[i] = 0;
-                            }
-                        }
-
-                        for (int i = AttysComm.INDEX_Analogue_channel_1;
-                             i <= AttysComm.INDEX_Analogue_channel_2; i++) {
-                            float norm = 0x800000;
-                            try {
-                                sample[i] = ((float) data[i] - norm) / norm *
-                                        ADC_REF / ADC_GAIN_FACTOR[adcGainRegister[i
-                                        - AttysComm.INDEX_Analogue_channel_1]];
-                            } catch (Exception e) {
-                                sample[i] = 0;
-                            }
-                        }
-
-                        // in case a sample has been lost
-                        for (int j = 0; j < nTrans; j++) {
-                            if (dataListener != null) {
-                                dataListener.gotData(sampleNumber, sample);
-                            }
-                            System.arraycopy(sample, 0, ringBuffer[inPtr], 0, sample.length);
-                            timestamp = timestamp + 1.0 / getSamplingRateInHz();
-                            sampleNumber++;
-                            inPtr++;
-                            if (inPtr == RINGBUFFERSIZE) {
-                                inPtr = 0;
-                            }
-                        }
-
                     } else {
                         if (Log.isLoggable(TAG, Log.DEBUG)) {
                             Log.d(TAG, "OK caught from the Attys");
