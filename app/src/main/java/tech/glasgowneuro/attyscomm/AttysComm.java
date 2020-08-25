@@ -702,6 +702,7 @@ public class AttysComm {
         private synchronized void sendSamplingRate() throws IOException {
             sendSyncCommand("r=" + adc_rate_index);
             highSpeed = (adc_rate_index == ADC_RATE_500Hz);
+            Log.d(TAG,"High speed: "+highSpeed);
         }
 
         private synchronized void sendFullscaleAccelRange() throws IOException {
@@ -947,6 +948,21 @@ public class AttysComm {
                             sample[i] = 0;
                         }
                     }
+
+                    // in case a sample has been lost
+                    for (int j = 0; j < nTrans; j++) {
+                        if (dataListener != null) {
+                            dataListener.gotData(sampleNumber, sample);
+                        }
+                        System.arraycopy(sample, 0, ringBuffer[inPtr], 0, sample.length);
+                        timestamp = timestamp + 1.0 / getSamplingRateInHz();
+                        sampleNumber++;
+                        inPtr++;
+                        if (inPtr == RINGBUFFERSIZE) {
+                            inPtr = 0;
+                        }
+                    }
+
                 }
 
             } catch (Exception e) {
@@ -958,19 +974,6 @@ public class AttysComm {
                 expectedTimestamp++;
             }
 
-            // in case a sample has been lost
-            for (int j = 0; j < nTrans; j++) {
-                if (dataListener != null) {
-                    dataListener.gotData(sampleNumber, sample);
-                }
-                System.arraycopy(sample, 0, ringBuffer[inPtr], 0, sample.length);
-                timestamp = timestamp + 1.0 / getSamplingRateInHz();
-                sampleNumber++;
-                inPtr++;
-                if (inPtr == RINGBUFFERSIZE) {
-                    inPtr = 0;
-                }
-            }
         }
         public void run() {
 
