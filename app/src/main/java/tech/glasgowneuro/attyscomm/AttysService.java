@@ -20,14 +20,33 @@ public class AttysService extends Service {
 
     private AttysComm attysComm = null;
 
-    AttysComm.DataListener dataListener = null;
+    private AttysComm.DataListener dataListener = null;
+
+    public void setDataListener(AttysComm.DataListener dataListener) {
+        this.dataListener = dataListener;
+    }
 
     private final AttysComm.DataListener localDataListener = new AttysComm.DataListener() {
         @Override
         public void gotData(long samplenumber, float[] data) {
             if (null != dataListener) {
                 dataListener.gotData(samplenumber,data);
-                dataRecorder.saveData(samplenumber,data);
+            }
+            dataRecorder.saveData(samplenumber,data);
+        }
+    };
+
+    private AttysComm.MessageListener messageListener = null;
+
+    public void setMessageListener(AttysComm.MessageListener messageListener) {
+        this.messageListener = messageListener;
+    }
+
+    private final AttysComm.MessageListener localMessageListener = new AttysComm.MessageListener() {
+        @Override
+        public void haveMessage(int msg) {
+            if (null != messageListener) {
+                messageListener.haveMessage(msg);
             }
         }
     };
@@ -63,15 +82,20 @@ public class AttysService extends Service {
 
         Log.d(TAG, "onStartCommand");
 
+        return START_STICKY;
+    }
+
+    synchronized public void createAttysComm() {
+        if (null != attysComm) return;
         btAttysDevice = AttysComm.findAttysBtDevice();
         if (null == btAttysDevice) {
             attysComm = null;
+            Log.d(TAG, "BT Attys Device is null!");
         } else {
             attysComm = new AttysComm(btAttysDevice);
             attysComm.registerDataListener(localDataListener);
+            Log.d(TAG, "Found Attys. AttysComm set up.");
         }
-
-        return START_STICKY;
     }
 
     @Override
