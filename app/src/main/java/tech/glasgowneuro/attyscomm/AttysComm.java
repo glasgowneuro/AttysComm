@@ -382,6 +382,10 @@ public class AttysComm {
         }
     }
 
+    public void emptyRingBuffer() {
+        outPtr = inPtr;
+    }
+
     public boolean isSampleAvilabale() {
         return (inPtr != outPtr);
     }
