@@ -314,10 +314,6 @@ public class AttysComm {
     private DataListener dataListener = null;
 
     public void registerDataListener(DataListener l) {
-        if (null != dataListener) {
-            Log.e(TAG,"Cannot register a data-listener. Already registered.");
-            return;
-        }
         dataListener = l;
     }
 
@@ -341,10 +337,6 @@ public class AttysComm {
     private MessageListener messageListener = null;
 
     public void registerMessageListener(MessageListener m) {
-        if (null != messageListener) {
-            Log.e(TAG,"Cannot register a message-listener. Already registered.");
-            return;
-        }
         messageListener = m;
     }
 
