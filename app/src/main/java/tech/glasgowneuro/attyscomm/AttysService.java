@@ -16,15 +16,11 @@ public class AttysService extends Service {
 
     private final String TAG = "AttysService";
 
-    private BluetoothDevice btAttysDevice = null;
-
-    private AttysComm attysComm = null;
-
-    private AttysComm.DataListener dataListener = null;
-
-    public void setDataListener(AttysComm.DataListener dataListener) {
+    public void registerDataListener(AttysComm.DataListener dataListener) {
         this.dataListener = dataListener;
     }
+
+    private AttysComm.DataListener dataListener = null;
 
     private final AttysComm.DataListener localDataListener = new AttysComm.DataListener() {
         @Override
@@ -38,7 +34,7 @@ public class AttysService extends Service {
 
     private AttysComm.MessageListener messageListener = null;
 
-    public void setMessageListener(AttysComm.MessageListener messageListener) {
+    public void registerMessageListener(AttysComm.MessageListener messageListener) {
         this.messageListener = messageListener;
     }
 
@@ -50,17 +46,6 @@ public class AttysService extends Service {
             }
         }
     };
-
-    public AttysService() {
-    }
-
-    public AttysComm getAttysComm() {
-        return attysComm;
-    }
-
-    public BluetoothDevice getBtAttysDevice() {
-        return btAttysDevice;
-    }
 
     public class AttysBinder extends Binder {
         public final AttysService getService() {
@@ -77,12 +62,17 @@ public class AttysService extends Service {
 
     @Override
     public final int onStartCommand(Intent intent, int flags, int startId) {
-        //we have some options for service
-        //start sticky means service will be explicity started and stopped
-
-        Log.d(TAG, "onStartCommand");
-
         return START_STICKY;
+    }
+
+    private BluetoothDevice btAttysDevice = null;
+    public BluetoothDevice getBtAttysDevice() {
+        return btAttysDevice;
+    }
+
+    private AttysComm attysComm = null;
+    public AttysComm getAttysComm() {
+        return attysComm;
     }
 
     synchronized public void createAttysComm() {
@@ -94,6 +84,7 @@ public class AttysService extends Service {
         } else {
             attysComm = new AttysComm(btAttysDevice);
             attysComm.registerDataListener(localDataListener);
+            attysComm.registerMessageListener(localMessageListener);
             Log.d(TAG, "Found Attys. AttysComm set up.");
         }
     }
@@ -150,11 +141,6 @@ public class AttysService extends Service {
             }
         }
 
-        // are we recording?
-        public boolean isRecording() {
-            return (textdataFileStream != null);
-        }
-
         public File getFile() {
             return textdataFile;
         }
@@ -164,6 +150,10 @@ public class AttysService extends Service {
         }
 
         public void setGPIOlogging(boolean g) { gpioLogging = g; }
+
+        public boolean isRecording() {
+            return (textdataFileStream != null) && (textdataFile != null);
+        }
 
         public void saveData(long sampleNo, float[] data) {
             if (textdataFile == null) return;
@@ -181,14 +171,14 @@ public class AttysService extends Service {
                     s = 9;
                     break;
             }
-            String tmp = String.format(Locale.US, "%f%c", (double) sampleNo / (double) getAttysComm().getSamplingRateInHz(), s);
+            String tmp = String.format(Locale.US, "%e%c", (double) sampleNo / (double) getAttysComm().getSamplingRateInHz(), s);
             for (float aData_unfilt : data) {
-                tmp = tmp + String.format(Locale.US, "%f%c", aData_unfilt, s);
+                tmp = tmp + String.format(Locale.US, "%e%c", aData_unfilt, s);
             }
 
             if (gpioLogging) {
-                tmp = tmp + String.format(Locale.US, "%c%f", s, data[AttysComm.INDEX_GPIO0]);
-                tmp = tmp + String.format(Locale.US, "%c%f", s, data[AttysComm.INDEX_GPIO1]);
+                tmp = tmp + String.format(Locale.US, "%c%e", s, data[AttysComm.INDEX_GPIO0]);
+                tmp = tmp + String.format(Locale.US, "%c%e", s, data[AttysComm.INDEX_GPIO1]);
             }
 
             if (textdataFileStream != null) {
@@ -202,4 +192,5 @@ public class AttysService extends Service {
     public DataRecorder getDataRecorder() {
         return dataRecorder;
     }
+
 }

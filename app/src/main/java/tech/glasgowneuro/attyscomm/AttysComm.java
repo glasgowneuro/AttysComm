@@ -314,13 +314,12 @@ public class AttysComm {
     private DataListener dataListener = null;
 
     public void registerDataListener(DataListener l) {
+        if (null != dataListener) {
+            Log.e(TAG,"Cannot register a data-listener. Already registered.");
+            return;
+        }
         dataListener = l;
     }
-
-    public void unregisterDataListener() {
-        dataListener = null;
-    }
-
 
     ///////////////////////////////////////////////////////////////////////
     // message listener
@@ -342,6 +341,10 @@ public class AttysComm {
     private MessageListener messageListener = null;
 
     public void registerMessageListener(MessageListener m) {
+        if (null != messageListener) {
+            Log.e(TAG,"Cannot register a message-listener. Already registered.");
+            return;
+        }
         messageListener = m;
     }
 
@@ -452,8 +455,9 @@ public class AttysComm {
     }
 
     public void start() {
-        if (bluetoothDevice != null) {
-            new Thread(attysRunnable).start();
+        if ((bluetoothDevice != null) && (mainThread == null)) {
+            mainThread = new Thread(attysRunnable);
+            mainThread.start();
         }
     }
 
@@ -463,6 +467,13 @@ public class AttysComm {
             Log.d(TAG, "Stopping AttysComm");
         }
         attysRunnable.cancel();
+        if (null == mainThread) return;
+        try {
+            mainThread.join();
+        } catch (Exception e){
+            Log.d(TAG,"Main thread:",e);
+        }
+        mainThread = null;
     }
 
 
@@ -480,6 +491,7 @@ public class AttysComm {
     private boolean isConnected = false;
     private double timestamp = 0.0; // in secs
     private final BluetoothDevice bluetoothDevice;
+    private Thread mainThread = null;
 
     // standard SPP uid
     UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
