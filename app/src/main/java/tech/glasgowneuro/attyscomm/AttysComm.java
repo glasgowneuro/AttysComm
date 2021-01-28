@@ -579,14 +579,10 @@ public class AttysComm {
                 } catch (Exception ignored) {
                 }
                 mmSocket = null;
-                if (Log.isLoggable(TAG, Log.VERBOSE)) {
-                    Log.v(TAG, "couldn't get streams");
-                }
+                Log.v(TAG, "couldn't get streams");
                 throw es;
             }
-            if (Log.isLoggable(TAG, Log.VERBOSE)) {
-                Log.v(TAG, "Connected to Attys");
-            }
+            Log.d(TAG, "Connected to Attys");
         }
 
 
@@ -711,7 +707,7 @@ public class AttysComm {
         private synchronized void sendSamplingRate() throws IOException {
             sendSyncCommand("r=" + adc_rate_index);
             highSpeed = (adc_rate_index == ADC_RATE_500Hz);
-            Log.d(TAG,"High speed: "+highSpeed);
+            Log.d(TAG, "High speed: " + highSpeed);
         }
 
         private synchronized void sendFullscaleAccelRange() throws IOException {
@@ -797,9 +793,9 @@ public class AttysComm {
                     data[INDEX_Analogue_channel_1 + i] = v;
                 }
 
-                sample[INDEX_GPIO0] = (raw[6] & 32) == 0 ? 0:1;
-                sample[INDEX_GPIO1] = (raw[6] & 64) == 0 ? 0:1;
-                sample[INDEX_CHARGING] = (raw[6] & 0x80) == 0 ? 0:1;
+                sample[INDEX_GPIO0] = (raw[6] & 32) == 0 ? 0 : 1;
+                sample[INDEX_GPIO1] = (raw[6] & 64) == 0 ? 0 : 1;
+                sample[INDEX_CHARGING] = (raw[6] & 0x80) == 0 ? 0 : 1;
                 // Log.d(TAG,""+sample[INDEX_CHARGING]);
 
                 if (fullOrPartialData == FULL_DATA) {
@@ -904,9 +900,9 @@ public class AttysComm {
             try {
                 final byte[] raw = Base64.decode(oneLine, Base64.DEFAULT);
 
-                sample[INDEX_GPIO0] = (raw[12] & 32) == 0 ? 0:1;
-                sample[INDEX_GPIO1] = (raw[12] & 64) == 0 ? 0:1;
-                sample[INDEX_CHARGING] = (raw[12] & 0x80) == 0 ? 0:1;
+                sample[INDEX_GPIO0] = (raw[12] & 32) == 0 ? 0 : 1;
+                sample[INDEX_GPIO1] = (raw[12] & 64) == 0 ? 0 : 1;
+                sample[INDEX_CHARGING] = (raw[12] & 0x80) == 0 ? 0 : 1;
 
                 // check that the timestamp is the expected one
                 byte ts = 0;
@@ -926,7 +922,7 @@ public class AttysComm {
                 // update timestamp
                 expectedTimestamp = ++ts;
 
-                for(int s = 0; s < 2; s++) {
+                for (int s = 0; s < 2; s++) {
 
                     // acceleration
                     for (int i = 0; i < 3; i++) {
@@ -952,7 +948,7 @@ public class AttysComm {
                                     | ((raw[s * 6 + i * 3 + 2] & 0xff) << 16);
                             sample[AttysComm.INDEX_Analogue_channel_1 + i] =
                                     ((float) v - norm) / norm *
-                                    ADC_REF / ADC_GAIN_FACTOR[adcGainRegister[i]];
+                                            ADC_REF / ADC_GAIN_FACTOR[adcGainRegister[i]];
                         } catch (Exception e) {
                             sample[i] = 0;
                         }
@@ -985,40 +981,58 @@ public class AttysComm {
 
         }
 
-
-        public void run() {
-
-            class WatchdogTask extends TimerTask {
-                int timeoutCtr = 3;
-                @Override
-                public void run() {
+        class WatchdogRunnable implements Runnable {
+            final int TIMEOUT_IN_MS = 300;
+            final int TIMEOUTCTR = 3;
+            boolean reconnecting = false;
+            int timeoutCtr = TIMEOUTCTR;
+            @Override
+            public void run() {
+                while (doRun) {
+                    try {
+                        Thread.sleep(TIMEOUT_IN_MS);
+                    } catch (Exception e) {
+                        Log.d(TAG,"watchdig sleep",e);
+                    }
                     if (timeoutCtr > 0) {
                         timeoutCtr--;
                     } else {
                         reconnect();
-                    }
-                }
-                void ping() {
-                    timeoutCtr = 3;
-                }
-                void reconnect() {
-                    while (doRun) {
-                        try {
-                            if (null != mmSocket ) {
-                                mmSocket.close();
-                            }
-                            connectToAttys();
-                            sendInit();
-                        } catch (IOException e) {
-                            if (Log.isLoggable(TAG, Log.DEBUG)) {
-                                Log.d(TAG, "Connect failed. Retrying...");
-                            }
-                        }
+                        timeoutCtr = TIMEOUTCTR;
                     }
                 }
             }
 
-            final WatchdogTask watchdogTask = new WatchdogTask();
+            void ping() {
+                timeoutCtr = TIMEOUTCTR;
+            }
+
+            void reconnect() {
+                reconnecting = true;
+                while (doRun) {
+                    try {
+                        Log.d(TAG,"Trying to reconnect.");
+                        connectToAttys();
+                        sendInit();
+                        timeoutCtr = TIMEOUTCTR;
+                        Log.d(TAG,"Reconnect successful");
+                        if (messageListener != null) {
+                            messageListener.haveMessage(MESSAGE_CONNECTED);
+                        }
+                        reconnecting = false;
+                        return;
+                    } catch (IOException e) {
+                        if (Log.isLoggable(TAG, Log.DEBUG)) {
+                            Log.d(TAG, "Reconnect failed. Retrying...");
+                        }
+                    }
+                }
+                reconnecting = false;
+                timeoutCtr = TIMEOUTCTR;
+            }
+        }
+
+        public void run() {
 
             doRun = true;
 
@@ -1047,55 +1061,64 @@ public class AttysComm {
             if (Log.isLoggable(TAG, Log.DEBUG)) {
                 Log.d(TAG, "Starting main data acquistion loop");
             }
+
             if (messageListener != null) {
                 messageListener.haveMessage(MESSAGE_CONNECTED);
             }
 
-            final int TIMEOUT_IN_MS = 100;
-            final Timer watchdogTimer = new Timer();
-            watchdogTimer.schedule(watchdogTask, 0, TIMEOUT_IN_MS);
+            final WatchdogRunnable watchdogRunnable = new WatchdogRunnable();
+            final Thread watchdogThread = new Thread(watchdogRunnable);
+            watchdogThread.start();
 
             correctTimestampDifference = false;
             expectedTimestamp = 0;
 
             // Keep listening to the InputStream until an exception occurs
             while (doRun) {
-                try {
-                    String oneLine;
-                    if (bufferedReader != null) {
-                        oneLine = bufferedReader.readLine();
-                        // Log.v(TAG, oneLine);
-                    } else {
-                        return;
-                    }
-                    if (!oneLine.equals("OK")) {
-                        watchdogTask.ping();
-                        if (highSpeed) {
-                            decodeHighSpeedPacket(oneLine);
+                if (watchdogRunnable.reconnecting) {
+                    try {
+                        Thread.sleep(100);
+                    } catch (Exception ignored){}
+                } else {
+                    try {
+                        String oneLine;
+                        if (bufferedReader != null) {
+                            oneLine = bufferedReader.readLine();
+                            // Log.v(TAG, oneLine);
                         } else {
-                            decodeStandardSpeedPacket(oneLine);
+                            return;
                         }
-                    } else {
+                        if (!oneLine.equals("OK")) {
+                            watchdogRunnable.ping();
+                            if (highSpeed) {
+                                decodeHighSpeedPacket(oneLine);
+                            } else {
+                                decodeStandardSpeedPacket(oneLine);
+                            }
+                        } else {
+                            if (Log.isLoggable(TAG, Log.DEBUG)) {
+                                Log.d(TAG, "OK caught from the Attys");
+                            }
+                        }
+                    } catch (Exception e) {
                         if (Log.isLoggable(TAG, Log.DEBUG)) {
-                            Log.d(TAG, "OK caught from the Attys");
+                            Log.d(TAG, "Stream lost or closing.", e);
                         }
                     }
-                } catch (Exception e) {
-                    if (Log.isLoggable(TAG, Log.DEBUG)) {
-                        Log.d(TAG, "Stream lost or closing.", e);
-                    }
-                    break;
                 }
             }
 
-            watchdogTimer.cancel();
-            watchdogTimer.purge();
+            try {
+                watchdogThread.join();
+            } catch (Exception e) {
+                Log.v(TAG,"Watchdog join: ",e);
+            }
 
             isConnected = false;
             fatalError = false;
             try {
                 mmSocket.close();
-            } catch (Exception e) {
+            } catch (Exception ignored) {
             }
             ;
             if (Log.isLoggable(TAG, Log.DEBUG)) {
