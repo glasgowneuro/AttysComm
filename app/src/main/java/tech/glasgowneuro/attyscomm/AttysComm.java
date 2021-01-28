@@ -490,6 +490,8 @@ public class AttysComm {
     private final BluetoothDevice bluetoothDevice;
     private Thread mainThread = null;
 
+    final private Object mainThreadSem = new Object();
+
     // standard SPP uid
     UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
 
@@ -691,9 +693,10 @@ public class AttysComm {
                         return;
                     } else {
                         try {
-                            Thread.sleep(10);
-                        } catch (InterruptedException e) {
-                        }
+                            synchronized (mainThreadSem) {
+                                mainThreadSem.wait(10);
+                            }
+                        } catch (InterruptedException ignored) { }
                     }
                 }
             }
@@ -906,7 +909,6 @@ public class AttysComm {
 
                 // check that the timestamp is the expected one
                 byte ts = 0;
-                nTrans = 1;
                 ts = raw[13];
                 if ((ts - expectedTimestamp) > 0) {
                     if (correctTimestampDifference) {
@@ -981,6 +983,8 @@ public class AttysComm {
 
         }
 
+        final Object watchdogSem = new Object();
+
         class WatchdogRunnable implements Runnable {
             final int TIMEOUT_IN_MS = 300;
             final int TIMEOUTCTR = 3;
@@ -990,7 +994,9 @@ public class AttysComm {
             public void run() {
                 while (doRun) {
                     try {
-                        Thread.sleep(TIMEOUT_IN_MS);
+                        synchronized (mainThreadSem) {
+                            mainThreadSem.wait(TIMEOUT_IN_MS);
+                        }
                     } catch (Exception e) {
                         Log.d(TAG,"watchdig sleep",e);
                     }
@@ -1020,6 +1026,9 @@ public class AttysComm {
                             messageListener.haveMessage(MESSAGE_CONNECTED);
                         }
                         reconnecting = false;
+                        synchronized (watchdogSem) {
+                            watchdogSem.notify();
+                        }
                         return;
                     } catch (IOException e) {
                         if (Log.isLoggable(TAG, Log.DEBUG)) {
@@ -1077,7 +1086,9 @@ public class AttysComm {
             while (doRun) {
                 if (watchdogRunnable.reconnecting) {
                     try {
-                        Thread.sleep(100);
+                        synchronized (watchdogSem) {
+                            watchdogSem.wait(100);
+                        }
                     } catch (Exception ignored){}
                 } else {
                     try {
@@ -1106,6 +1117,10 @@ public class AttysComm {
                         }
                     }
                 }
+            }
+
+            synchronized (mainThreadSem) {
+                mainThreadSem.notify();
             }
 
             try {
