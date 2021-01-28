@@ -36,6 +36,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.UUID;
 
 
@@ -354,7 +356,6 @@ public class AttysComm {
     public boolean hasFatalError() {
         return fatalError;
     }
-
 
     /////////////////////////////////////////////////
     // ringbuffer keeping data for chunk-wise plotting
@@ -983,7 +984,41 @@ public class AttysComm {
             }
 
         }
+
+
         public void run() {
+
+            class WatchdogTask extends TimerTask {
+                int timeoutCtr = 3;
+                @Override
+                public void run() {
+                    if (timeoutCtr > 0) {
+                        timeoutCtr--;
+                    } else {
+                        reconnect();
+                    }
+                }
+                void ping() {
+                    timeoutCtr = 3;
+                }
+                void reconnect() {
+                    while (doRun) {
+                        try {
+                            if (null != mmSocket ) {
+                                mmSocket.close();
+                            }
+                            connectToAttys();
+                            sendInit();
+                        } catch (IOException e) {
+                            if (Log.isLoggable(TAG, Log.DEBUG)) {
+                                Log.d(TAG, "Connect failed. Retrying...");
+                            }
+                        }
+                    }
+                }
+            }
+
+            final WatchdogTask watchdogTask = new WatchdogTask();
 
             doRun = true;
 
@@ -1016,6 +1051,10 @@ public class AttysComm {
                 messageListener.haveMessage(MESSAGE_CONNECTED);
             }
 
+            final int TIMEOUT_IN_MS = 100;
+            final Timer watchdogTimer = new Timer();
+            watchdogTimer.schedule(watchdogTask, 0, TIMEOUT_IN_MS);
+
             correctTimestampDifference = false;
             expectedTimestamp = 0;
 
@@ -1030,6 +1069,7 @@ public class AttysComm {
                         return;
                     }
                     if (!oneLine.equals("OK")) {
+                        watchdogTask.ping();
                         if (highSpeed) {
                             decodeHighSpeedPacket(oneLine);
                         } else {
@@ -1047,6 +1087,10 @@ public class AttysComm {
                     break;
                 }
             }
+
+            watchdogTimer.cancel();
+            watchdogTimer.purge();
+
             isConnected = false;
             fatalError = false;
             try {
