@@ -22,7 +22,6 @@ package tech.glasgowneuro.attyscomm;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
-import android.content.Intent;
 import android.util.Base64;
 import android.util.Log;
 
@@ -31,13 +30,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.Locale;
-import java.util.Scanner;
+import java.util.Calendar;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.UUID;
 
 
@@ -295,6 +290,7 @@ public class AttysComm {
     ////////////////////////////////////////////////
     // sample counter
     private long sampleNumber = 0;
+    private long startTime = 0;
 
     public long getSampleNumber() {
         return sampleNumber;
@@ -501,7 +497,6 @@ public class AttysComm {
         private boolean doRun = true;
         private BluetoothSocket mmSocket = null;
         private BufferedReader bufferedReader = null;
-        private InputStream mmInStream = null;
         private OutputStream mmOutStream = null;
         private byte[] adcMuxRegister = null;
         private byte[] adcGainRegister = null;
@@ -514,12 +509,12 @@ public class AttysComm {
             if (mmSocket != null) {
                 try {
                     mmSocket.close();
-                } catch (Exception e) {
+                } catch (Exception ignored) {
                 }
             }
             mmSocket = null;
             bufferedReader = null;
-            mmInStream = null;
+            InputStream mmInStream = null;
             mmOutStream = null;
 
             if (bluetoothDevice == null) {
@@ -541,7 +536,7 @@ public class AttysComm {
                 }
                 try {
                     mmSocket.close();
-                } catch (Exception closeExeption) {
+                } catch (Exception ignored) {
                 }
                 mmSocket = null;
                 throw ex;
@@ -553,14 +548,12 @@ public class AttysComm {
 
             if (mmSocket != null) {
                 try {
-                    if (mmSocket != null) {
-                        mmSocket.connect();
-                    }
+                    mmSocket.connect();
                 } catch (IOException e) {
                     if (mmSocket != null) {
                         try {
                             mmSocket.close();
-                        } catch (Exception ec) {
+                        } catch (Exception ignored) {
                         }
                     }
                     mmSocket = null;
@@ -756,7 +749,7 @@ public class AttysComm {
             byte[] bytes = s.getBytes();
             try {
                 mmOutStream.write(bytes);
-            } catch (IOException e) {
+            } catch (IOException ignored) {
             }
         }
 
@@ -888,7 +881,7 @@ public class AttysComm {
                     dataListener.gotData(sampleNumber, sample);
                 }
                 System.arraycopy(sample, 0, ringBuffer[inPtr], 0, sample.length);
-                timestamp = timestamp + 1.0 / getSamplingRateInHz();
+                timestamp = ((double)sampleNumber) / ((double)getSamplingRateInHz());
                 sampleNumber++;
                 inPtr++;
                 if (inPtr == RINGBUFFERSIZE) {
@@ -962,7 +955,7 @@ public class AttysComm {
                             dataListener.gotData(sampleNumber, sample);
                         }
                         System.arraycopy(sample, 0, ringBuffer[inPtr], 0, sample.length);
-                        timestamp = timestamp + 1.0 / getSamplingRateInHz();
+                        timestamp = ((double)sampleNumber) / ((double)getSamplingRateInHz());
                         sampleNumber++;
                         inPtr++;
                         if (inPtr == RINGBUFFERSIZE) {
@@ -1026,8 +1019,13 @@ public class AttysComm {
                             messageListener.haveMessage(MESSAGE_CONNECTED);
                         }
                         reconnecting = false;
+                        correctTimestampDifference = false;
                         synchronized (watchdogSem) {
                             watchdogSem.notify();
+                        }
+                        if (startTime > 0) {
+                            sampleNumber = (Calendar.getInstance().getTimeInMillis() - startTime)
+                                    * getSamplingRateInHz() / 1000;
                         }
                         return;
                     } catch (IOException e) {
@@ -1081,6 +1079,7 @@ public class AttysComm {
 
             correctTimestampDifference = false;
             expectedTimestamp = 0;
+            sampleNumber = 0;
 
             // Keep listening to the InputStream until an exception occurs
             while (doRun) {
@@ -1101,6 +1100,9 @@ public class AttysComm {
                         }
                         if (!oneLine.equals("OK")) {
                             watchdogRunnable.ping();
+                            if (0 == startTime) {
+                                startTime = Calendar.getInstance().getTimeInMillis();
+                            }
                             if (highSpeed) {
                                 decodeHighSpeedPacket(oneLine);
                             } else {
