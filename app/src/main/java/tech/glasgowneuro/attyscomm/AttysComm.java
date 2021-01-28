@@ -276,14 +276,13 @@ public class AttysComm {
 
 
     ////////////////////////////////////////////////
-    // timestamp stuff as double
-    // note this might drift in the long run
-    public void setTimestamp(double ts) {
-        timestamp = ts;
+    // timestamp stuff as long in samples
+    public void setTimestamp(long ts) {
+        sampleNumber = ts;
     }
 
-    public double getTimestamp() {
-        return timestamp;
+    public long getTimestamp() {
+        return sampleNumber;
     }
 
 
