@@ -357,9 +357,7 @@ public class AttysComm {
     public float[] getSampleFromBuffer() {
         if (inPtr != outPtr) {
             float[] sample = null;
-            if (ringBuffer != null) {
-                sample = ringBuffer[outPtr];
-            }
+            sample = ringBuffer[outPtr];
             outPtr++;
             if (outPtr == RINGBUFFERSIZE) {
                 outPtr = 0;
@@ -397,6 +395,14 @@ public class AttysComm {
         return n;
     }
 
+    public void enableRingbuffer() {
+        useRingBuffer = true;
+    }
+
+    public void disableRingbuffer() {
+        useRingBuffer = false;
+        resetRingbuffer();
+    }
 
     // searches for an Attys. Use as:
     //
@@ -484,6 +490,7 @@ public class AttysComm {
     private double timestamp = 0.0; // in secs
     private final BluetoothDevice bluetoothDevice;
     private Thread mainThread = null;
+    private boolean useRingBuffer = true;
 
     final private Object mainThreadSem = new Object();
 
@@ -879,12 +886,14 @@ public class AttysComm {
                 if (dataListener != null) {
                     dataListener.gotData(sampleNumber, sample);
                 }
-                System.arraycopy(sample, 0, ringBuffer[inPtr], 0, sample.length);
-                timestamp = ((double)sampleNumber) / ((double)getSamplingRateInHz());
-                sampleNumber++;
-                inPtr++;
-                if (inPtr == RINGBUFFERSIZE) {
-                    inPtr = 0;
+                if (useRingBuffer) {
+                    System.arraycopy(sample, 0, ringBuffer[inPtr], 0, sample.length);
+                    timestamp = ((double) sampleNumber) / ((double) getSamplingRateInHz());
+                    sampleNumber++;
+                    inPtr++;
+                    if (inPtr == RINGBUFFERSIZE) {
+                        inPtr = 0;
+                    }
                 }
             }
         }
@@ -953,12 +962,14 @@ public class AttysComm {
                         if (dataListener != null) {
                             dataListener.gotData(sampleNumber, sample);
                         }
-                        System.arraycopy(sample, 0, ringBuffer[inPtr], 0, sample.length);
-                        timestamp = ((double)sampleNumber) / ((double)getSamplingRateInHz());
-                        sampleNumber++;
-                        inPtr++;
-                        if (inPtr == RINGBUFFERSIZE) {
-                            inPtr = 0;
+                        if (useRingBuffer) {
+                            System.arraycopy(sample, 0, ringBuffer[inPtr], 0, sample.length);
+                            timestamp = ((double) sampleNumber) / ((double) getSamplingRateInHz());
+                            sampleNumber++;
+                            inPtr++;
+                            if (inPtr == RINGBUFFERSIZE) {
+                                inPtr = 0;
+                            }
                         }
                     }
 
