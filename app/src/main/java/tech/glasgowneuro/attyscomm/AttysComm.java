@@ -277,14 +277,15 @@ public class AttysComm {
 
     ////////////////////////////////////////////////
     // timestamp stuff as long in samples
-    public void setTimestamp(long ts) {
+    public void setSampleCounter(long ts) {
         sampleNumber = ts;
     }
 
-    public long getTimestamp() {
+    public long getSampleCounter() {
         return sampleNumber;
     }
 
+    public double getTimestamp() { return timestamp; }
 
     ////////////////////////////////////////////////
     // sample counter
@@ -886,10 +887,10 @@ public class AttysComm {
                 if (dataListener != null) {
                     dataListener.gotData(sampleNumber, sample);
                 }
+                timestamp = ((double) sampleNumber) / ((double) getSamplingRateInHz());
+                sampleNumber++;
                 if (useRingBuffer) {
                     System.arraycopy(sample, 0, ringBuffer[inPtr], 0, sample.length);
-                    timestamp = ((double) sampleNumber) / ((double) getSamplingRateInHz());
-                    sampleNumber++;
                     inPtr++;
                     if (inPtr == RINGBUFFERSIZE) {
                         inPtr = 0;
@@ -962,10 +963,10 @@ public class AttysComm {
                         if (dataListener != null) {
                             dataListener.gotData(sampleNumber, sample);
                         }
+                        timestamp = ((double) sampleNumber) / ((double) getSamplingRateInHz());
+                        sampleNumber++;
                         if (useRingBuffer) {
                             System.arraycopy(sample, 0, ringBuffer[inPtr], 0, sample.length);
-                            timestamp = ((double) sampleNumber) / ((double) getSamplingRateInHz());
-                            sampleNumber++;
                             inPtr++;
                             if (inPtr == RINGBUFFERSIZE) {
                                 inPtr = 0;
