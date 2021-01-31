@@ -37,16 +37,16 @@ public class AttysService extends Service {
     }
 
     private BluetoothDevice btAttysDevice = null;
-    public BluetoothDevice getBtAttysDevice() {
+    final public BluetoothDevice getBtAttysDevice() {
         return btAttysDevice;
     }
 
     private AttysComm attysComm = null;
-    public AttysComm getAttysComm() {
+    final public AttysComm getAttysComm() {
         return attysComm;
     }
 
-    synchronized public void createAttysComm() {
+    final synchronized public void createAttysComm() {
         if (null != attysComm) return;
         btAttysDevice = AttysComm.findAttysBtDevice();
         if (null == btAttysDevice) {
@@ -58,16 +58,21 @@ public class AttysService extends Service {
         }
     }
 
-    public void stop() {
-        if (attysComm != null) {
+    final public void stop() {
+        if (null != attysComm) {
             attysComm.stop();
+        }
+    }
+
+    final public void start() {
+        if (null != attysComm) {
+            attysComm.start();
         }
     }
 
     @Override
     public final void onDestroy() {
         stop();
-        attysComm = null;
         super.onDestroy();
     }
 
