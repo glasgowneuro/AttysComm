@@ -36,11 +36,6 @@ public class AttysService extends Service {
         return START_STICKY;
     }
 
-    private BluetoothDevice btAttysDevice = null;
-    final public BluetoothDevice getBtAttysDevice() {
-        return btAttysDevice;
-    }
-
     private AttysComm attysComm = null;
     final public AttysComm getAttysComm() {
         return attysComm;
@@ -48,14 +43,7 @@ public class AttysService extends Service {
 
     final synchronized public void createAttysComm() {
         if (null != attysComm) return;
-        btAttysDevice = AttysComm.findAttysBtDevice();
-        if (null == btAttysDevice) {
-            attysComm = null;
-            Log.d(TAG, "BT Attys Device is null!");
-        } else {
-            attysComm = new AttysComm(btAttysDevice);
-            Log.d(TAG, "Found Attys. AttysComm set up.");
-        }
+        attysComm = new AttysComm();
     }
 
     final public void stop() {

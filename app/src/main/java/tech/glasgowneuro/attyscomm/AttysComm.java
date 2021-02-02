@@ -277,8 +277,9 @@ public class AttysComm {
 
     ////////////////////////////////////////////////
     // timestamp stuff as long in samples
-    public void setSampleCounter(long ts) {
-        sampleNumber = ts;
+    public void resetSampleCounter() {
+        sampleNumber = 0;
+        startTime = 0;
     }
 
     public long getSampleCounter() {
@@ -447,30 +448,29 @@ public class AttysComm {
     }
 
     /////////////////////////////////////////////////
-    // Constructor: takes the bluetooth device as an argument
-    // it then tries to connect to the Attys
-    public AttysComm(BluetoothDevice _device) {
-        bluetoothDevice = _device;
-    }
+    // Constructor
+    public AttysComm() {}
 
-    public void start() {
-        if ((bluetoothDevice != null) && (mainThread == null)) {
-            mainThread = new Thread(attysRunnable);
-            mainThread.start();
+    public synchronized void start() {
+        if (null == mainThread) {
+            bluetoothDevice = findAttysBtDevice();
+            if (bluetoothDevice != null) {
+                mainThread = new Thread(attysRunnable);
+                mainThread.start();
+            }
         }
     }
-
 
     public synchronized void stop() {
-        if (Log.isLoggable(TAG, Log.DEBUG)) {
-            Log.d(TAG, "Stopping AttysComm");
-        }
+        Log.d(TAG, "Stopping AttysComm");
         attysRunnable.cancel();
         if (null == mainThread) return;
         try {
+            Log.d(TAG,"Waiting for the thread to complete.");
             mainThread.join();
+            Log.d(TAG,"Thread completed.");
         } catch (Exception e){
-            Log.d(TAG,"Main thread:",e);
+            Log.d(TAG,"Main thread completion error:",e);
         }
         mainThread = null;
     }
@@ -489,7 +489,7 @@ public class AttysComm {
     private int outPtr = 0;
     private boolean isConnected = false;
     private double timestamp = 0.0; // in secs
-    private final BluetoothDevice bluetoothDevice;
+    private BluetoothDevice bluetoothDevice = findAttysBtDevice();
     private Thread mainThread = null;
     private boolean useRingBuffer = true;
 
@@ -498,6 +498,9 @@ public class AttysComm {
     // standard SPP uid
     UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
 
+    public BluetoothDevice getBluetoothDevice() {
+        return bluetoothDevice;
+    }
 
     private class AttysRunnable implements Runnable {
 
@@ -525,9 +528,7 @@ public class AttysComm {
             mmOutStream = null;
 
             if (bluetoothDevice == null) {
-                if (Log.isLoggable(TAG, Log.ERROR)) {
-                    Log.e(TAG, "Bluetooth device is null.");
-                }
+                Log.e(TAG, "Bluetooth device is null.");
                 throw new IOException();
             }
 
@@ -538,9 +539,7 @@ public class AttysComm {
             try {
                 mmSocket = bluetoothDevice.createRfcommSocketToServiceRecord(uuid);
             } catch (Exception ex) {
-                if (Log.isLoggable(TAG, Log.DEBUG)) {
-                    Log.d(TAG, "Could not get rfComm socket:", ex);
-                }
+                Log.d(TAG, "Could not get rfComm socket:", ex);
                 try {
                     mmSocket.close();
                 } catch (Exception ignored) {
@@ -549,9 +548,7 @@ public class AttysComm {
                 throw ex;
             }
 
-            if (Log.isLoggable(TAG, Log.VERBOSE)) {
-                Log.v(TAG, "Got rfComm socket!");
-            }
+            Log.v(TAG, "Got rfComm socket!");
 
             if (mmSocket != null) {
                 try {
@@ -564,9 +561,7 @@ public class AttysComm {
                         }
                     }
                     mmSocket = null;
-                    if (Log.isLoggable(TAG, Log.VERBOSE)) {
-                        Log.v(TAG, "mmSocket.connect() failed");
-                    }
+                    Log.d(TAG, "mmSocket.connect() failed");
                     throw e;
                 }
             }
@@ -581,7 +576,7 @@ public class AttysComm {
                 } catch (Exception ignored) {
                 }
                 mmSocket = null;
-                Log.v(TAG, "couldn't get streams");
+                Log.d(TAG, "Couldn't get streams during connect.");
                 throw es;
             }
             Log.d(TAG, "Connected to Attys");
@@ -638,7 +633,6 @@ public class AttysComm {
                 Log.e(TAG, "Could not detect OK after x=0!");
             }
         }
-
 
         private synchronized void startADC() throws IOException {
             String s = "x=1\r";
@@ -781,6 +775,13 @@ public class AttysComm {
                 Log.d(TAG, "doRun = false");
             }
             doRun = false;
+            if (null != mmSocket) {
+                try {
+                    mmSocket.close();
+                } catch (Exception e) {
+                    Log.d(TAG, "Tried to close the socket during cancel()", e);
+                }
+            }
         }
 
         public void decodeStandardSpeedPacket(String oneLine) {
