@@ -423,7 +423,13 @@ public class AttysComm {
             return null;
         }
 
-        final Set<BluetoothDevice> pairedDevices = BA.getBondedDevices();
+        Set<BluetoothDevice> pairedDevices = null;
+        try {
+            pairedDevices = BA.getBondedDevices();
+        } catch (java.lang.SecurityException e) {
+            Log.d(TAG,"BT access denied: ",e);
+            return null;
+        }
 
         if (pairedDevices == null) {
             if (Log.isLoggable(TAG, Log.DEBUG)) {
@@ -433,7 +439,13 @@ public class AttysComm {
         }
 
         for (BluetoothDevice bt : pairedDevices) {
-            final String b = bt.getName();
+            String b;
+            try {
+                b = bt.getName();
+            } catch (java.lang.SecurityException e) {
+                Log.d(TAG,"BT access denied: ",e);
+                return null;
+            }
             if (Log.isLoggable(TAG, Log.DEBUG)) {
                 Log.d(TAG, "Paired dev=" + b);
             }
@@ -538,6 +550,14 @@ public class AttysComm {
 
             try {
                 mmSocket = bluetoothDevice.createRfcommSocketToServiceRecord(uuid);
+            } catch (java.lang.SecurityException e) {
+                Log.d(TAG, "BT permission not granted: ", e);
+                try {
+                    mmSocket.close();
+                } catch (Exception ignored) {
+                }
+                mmSocket = null;
+                throw e;
             } catch (Exception ex) {
                 Log.d(TAG, "Could not get rfComm socket:", ex);
                 try {
@@ -553,6 +573,14 @@ public class AttysComm {
             if (mmSocket != null) {
                 try {
                     mmSocket.connect();
+                }  catch (java.lang.SecurityException e) {
+                    Log.d(TAG, "BT permission not granted: ", e);
+                    try {
+                        mmSocket.close();
+                    } catch (Exception ignored) {
+                    }
+                    mmSocket = null;
+                    throw e;
                 } catch (IOException e) {
                     if (mmSocket != null) {
                         try {
