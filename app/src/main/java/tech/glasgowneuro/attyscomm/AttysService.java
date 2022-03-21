@@ -46,13 +46,13 @@ public class AttysService extends Service {
         attysComm = new AttysComm();
     }
 
-    final public void stop() {
+    final public void stopAttysComm() {
         if (null != attysComm) {
             attysComm.stop();
         }
     }
 
-    final public void start() {
+    final public void startAttysComm() {
         if (null != attysComm) {
             attysComm.start();
         }
@@ -60,7 +60,7 @@ public class AttysService extends Service {
 
     @Override
     public final void onDestroy() {
-        stop();
+        stopAttysComm();
         super.onDestroy();
     }
 
