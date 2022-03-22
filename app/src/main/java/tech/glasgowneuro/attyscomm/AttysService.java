@@ -16,7 +16,7 @@ import java.util.TimerTask;
 
 public class AttysService extends Service {
 
-    private final String TAG = "AttysService";
+    private final String TAG = AttysService.class.getSimpleName();
 
     public class AttysBinder extends Binder {
         public final AttysService getService() {
@@ -33,29 +33,22 @@ public class AttysService extends Service {
 
     @Override
     public final int onStartCommand(Intent intent, int flags, int startId) {
+        Log.d(TAG,"Starting AttysService");
         return START_STICKY;
     }
 
-    private AttysComm attysComm = null;
+    private final AttysComm attysComm = new AttysComm();
+
     final public AttysComm getAttysComm() {
         return attysComm;
     }
 
-    final synchronized public void createAttysComm() {
-        if (null != attysComm) return;
-        attysComm = new AttysComm();
-    }
-
     final public void stopAttysComm() {
-        if (null != attysComm) {
-            attysComm.stop();
-        }
+        attysComm.stop();
     }
 
     final public void startAttysComm() {
-        if (null != attysComm) {
-            attysComm.start();
-        }
+        attysComm.start();
     }
 
     @Override
